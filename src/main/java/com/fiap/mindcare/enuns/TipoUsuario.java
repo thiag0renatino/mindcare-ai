@@ -1,0 +1,7 @@
+package com.fiap.mindcare.enuns;
+
+public enum TipoUsuario {
+    ADMIN,
+    USER
+}
+
