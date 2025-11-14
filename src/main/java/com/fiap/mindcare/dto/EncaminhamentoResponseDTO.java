@@ -1,6 +1,8 @@
 package com.fiap.mindcare.dto;
 
-public class EncaminhamentoResponseDTO {
+import org.springframework.hateoas.RepresentationModel;
+
+public class EncaminhamentoResponseDTO extends RepresentationModel<EncaminhamentoResponseDTO> {
 
 
     private Long id;

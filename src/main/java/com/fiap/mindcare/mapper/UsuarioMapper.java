@@ -5,8 +5,11 @@ import com.fiap.mindcare.dto.UsuarioResponseDTO;
 import com.fiap.mindcare.model.UsuarioSistema;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring", uses = {EmpresaMapper.class, EnumMapper.class})
+@Mapper(componentModel = "spring", uses = {EmpresaMapper.class, EnumMapper.class},
+        unmappedTargetPolicy = ReportingPolicy.IGNORE
+)
 public interface UsuarioMapper {
 
     UsuarioResponseDTO toResponse(UsuarioSistema entity);

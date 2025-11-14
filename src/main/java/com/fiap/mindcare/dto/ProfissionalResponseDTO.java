@@ -1,6 +1,8 @@
 package com.fiap.mindcare.dto;
 
-public class ProfissionalResponseDTO {
+import org.springframework.hateoas.RepresentationModel;
+
+public class ProfissionalResponseDTO extends RepresentationModel<ProfissionalResponseDTO> {
 
     private Long id;
     private String nome;

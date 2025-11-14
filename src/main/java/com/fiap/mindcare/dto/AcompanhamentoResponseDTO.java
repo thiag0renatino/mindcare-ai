@@ -1,8 +1,10 @@
 package com.fiap.mindcare.dto;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import java.time.LocalDateTime;
 
-public class AcompanhamentoResponseDTO {
+public class AcompanhamentoResponseDTO extends RepresentationModel<AcompanhamentoResponseDTO> {
 
     private Long id;
     private LocalDateTime dataEvento;

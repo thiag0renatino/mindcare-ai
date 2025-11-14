@@ -1,6 +1,8 @@
 package com.fiap.mindcare.dto;
 
-public class EmpresaResponseDTO {
+import org.springframework.hateoas.RepresentationModel;
+
+public class EmpresaResponseDTO extends RepresentationModel<EmpresaResponseDTO> {
 
     private Long id;
     private String cnpj;

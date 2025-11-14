@@ -4,8 +4,10 @@ import com.fiap.mindcare.dto.EmpresaRequestDTO;
 import com.fiap.mindcare.dto.EmpresaResponseDTO;
 import com.fiap.mindcare.model.Empresa;
 import org.mapstruct.Mapper;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE
+)
 public interface EmpresaMapper {
 
     EmpresaResponseDTO toResponse(Empresa entity);

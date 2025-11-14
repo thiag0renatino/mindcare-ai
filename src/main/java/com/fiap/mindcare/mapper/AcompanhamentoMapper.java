@@ -6,8 +6,11 @@ import com.fiap.mindcare.dto.AcompanhamentoResponseDTO;
 import com.fiap.mindcare.model.Acompanhamento;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring", uses = {EncaminhamentoMapper.class, EnumMapper.class})
+@Mapper(componentModel = "spring", uses = {EncaminhamentoMapper.class, EnumMapper.class},
+        unmappedTargetPolicy = ReportingPolicy.IGNORE
+)
 public interface AcompanhamentoMapper {
 
     AcompanhamentoResponseDTO toResponse(Acompanhamento entity);

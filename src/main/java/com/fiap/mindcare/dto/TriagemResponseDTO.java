@@ -1,8 +1,10 @@
 package com.fiap.mindcare.dto;
 
+import org.springframework.hateoas.RepresentationModel;
+
 import java.time.LocalDateTime;
 
-public class TriagemResponseDTO {
+public class TriagemResponseDTO extends RepresentationModel<TriagemResponseDTO> {
 
     private Long id;
     private LocalDateTime dataHora;
