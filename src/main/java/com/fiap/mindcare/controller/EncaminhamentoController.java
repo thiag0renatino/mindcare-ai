@@ -1,9 +1,11 @@
 package com.fiap.mindcare.controller;
 
+import com.fiap.mindcare.config.security.SecurityConfig;
 import com.fiap.mindcare.dto.EncaminhamentoRequestDTO;
 import com.fiap.mindcare.dto.EncaminhamentoResponseDTO;
 import com.fiap.mindcare.service.EncaminhamentoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -20,6 +22,7 @@ import java.net.URI;
 @Tag(name = "Encaminhamentos", description = "Administra encaminhamentos clínicos originados das triagens")
 @RestController
 @RequestMapping("/api/encaminhamentos")
+@SecurityRequirement(name = SecurityConfig.SECURITY)
 public class EncaminhamentoController {
 
     private final EncaminhamentoService encaminhamentoService;

@@ -1,9 +1,11 @@
 package com.fiap.mindcare.controller;
 
+import com.fiap.mindcare.config.security.SecurityConfig;
 import com.fiap.mindcare.dto.TriagemRequestDTO;
 import com.fiap.mindcare.dto.TriagemResponseDTO;
 import com.fiap.mindcare.service.TriagemService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -20,6 +22,7 @@ import java.net.URI;
 @Tag(name = "Triagens", description = "Controle de registros de triagem e avaliação inicial dos usuários")
 @RestController
 @RequestMapping("/api/triagens")
+@SecurityRequirement(name = SecurityConfig.SECURITY)
 public class TriagemController {
 
     private final TriagemService triagemService;

@@ -1,13 +1,9 @@
-package com.fiap.mindcare.config;
+package com.fiap.mindcare.config.openApi;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.info.License;
-import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
@@ -15,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
         info = @Info(
                 title = "MindCheck AI API",
                 version = "1.0.0",
-                description = "Núcleo tecnológico da MindCheck AI — a ferramenta de triagem inteligente focada no bem-estar físico e mental dos colaboradores. "
+                description = "Núcleo tecnológico da MindCheck AI — a ferramenta de triagem inteligente focada no bem-estar físico e mental dos trabalhadores. "
                         + "Esta API organiza o fluxo de check-ins periódicos (voz ou texto), interpreta relatos com IA para classificar riscos (baixo/moderado/alto), "
                         + "gera sugestões imediatas, recomenda exames ou especialidades conveniadas e registra o acompanhamento pós-atendimento. "
                         + "O objetivo é guiar o colaborador e promover autocuidado, sem substituir o diagnóstico médico.",

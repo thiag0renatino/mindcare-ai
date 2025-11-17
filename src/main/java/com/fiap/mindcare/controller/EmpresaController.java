@@ -1,9 +1,11 @@
 package com.fiap.mindcare.controller;
 
+import com.fiap.mindcare.config.security.SecurityConfig;
 import com.fiap.mindcare.dto.EmpresaRequestDTO;
 import com.fiap.mindcare.dto.EmpresaResponseDTO;
 import com.fiap.mindcare.service.EmpresaService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -20,6 +22,7 @@ import java.net.URI;
 @Tag(name = "Empresas", description = "Operações relacionadas ao cadastro e gestão de empresas")
 @RestController
 @RequestMapping("/api/empresas")
+@SecurityRequirement(name = SecurityConfig.SECURITY)
 public class EmpresaController {
 
     private final EmpresaService empresaService;

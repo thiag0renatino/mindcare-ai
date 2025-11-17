@@ -4,7 +4,12 @@ import com.fiap.mindcare.enuns.TipoUsuario;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 
 @Entity
@@ -12,7 +17,7 @@ import java.util.Objects;
         name = "usuario_seq",
         sequenceName = "SEQ_USUARIO_GS",
         allocationSize = 1)
-public class UsuarioSistema {
+public class UsuarioSistema implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "usuario_seq")
@@ -109,5 +114,22 @@ public class UsuarioSistema {
     @Override
     public int hashCode() {
         return Objects.hash(id, nome, email, senha, tipo, empresa);
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        if (this.tipo == TipoUsuario.ADMIN) return List.of(new SimpleGrantedAuthority("ADMIN"),
+                new SimpleGrantedAuthority("USER"));
+        else return List.of(new SimpleGrantedAuthority("USER"));
+    }
+
+    @Override
+    public String getPassword() {
+        return senha;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
     }
 }

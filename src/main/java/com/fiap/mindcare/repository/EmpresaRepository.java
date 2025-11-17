@@ -9,5 +9,7 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
 
     Optional<Empresa> findByCnpj(String cnpj);
 
+    Optional<Empresa> findByNomeContainingIgnoreCase(String nome);
+
     boolean existsByCnpj(String cnpj);
 }

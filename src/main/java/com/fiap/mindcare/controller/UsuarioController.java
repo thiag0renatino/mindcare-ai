@@ -1,9 +1,11 @@
 package com.fiap.mindcare.controller;
 
+import com.fiap.mindcare.config.security.SecurityConfig;
 import com.fiap.mindcare.dto.UsuarioRequestDTO;
 import com.fiap.mindcare.dto.UsuarioResponseDTO;
 import com.fiap.mindcare.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Usuários", description = "Gerencia usuários da plataforma corporativa e seus perfis de acesso")
 @RestController
 @RequestMapping("/api/usuarios")
+@SecurityRequirement(name = SecurityConfig.SECURITY)
 public class UsuarioController {
 
     private final UsuarioService usuarioService;

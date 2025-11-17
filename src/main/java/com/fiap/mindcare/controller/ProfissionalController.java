@@ -1,9 +1,11 @@
 package com.fiap.mindcare.controller;
 
+import com.fiap.mindcare.config.security.SecurityConfig;
 import com.fiap.mindcare.dto.ProfissionalRequestDTO;
 import com.fiap.mindcare.dto.ProfissionalResponseDTO;
 import com.fiap.mindcare.service.ProfissionalService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
@@ -20,6 +22,7 @@ import java.net.URI;
 @Tag(name = "Profissionais", description = "Catálogo de profissionais de saúde disponíveis para encaminhamentos")
 @RestController
 @RequestMapping("/api/profissionais")
+@SecurityRequirement(name = SecurityConfig.SECURITY)
 public class ProfissionalController {
 
     private final ProfissionalService profissionalService;
