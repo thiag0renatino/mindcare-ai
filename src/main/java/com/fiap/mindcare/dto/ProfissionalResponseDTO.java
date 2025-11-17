@@ -1,7 +1,9 @@
 package com.fiap.mindcare.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.hateoas.RepresentationModel;
 
+@JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class ProfissionalResponseDTO extends RepresentationModel<ProfissionalResponseDTO> {
 
     private Long id;

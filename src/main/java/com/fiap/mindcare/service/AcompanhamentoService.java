@@ -1,5 +1,6 @@
 package com.fiap.mindcare.service;
 
+import com.fiap.mindcare.controller.AcompanhamentoController;
 import com.fiap.mindcare.dto.AcompanhamentoRequestDTO;
 import com.fiap.mindcare.dto.AcompanhamentoResponseDTO;
 import com.fiap.mindcare.mapper.AcompanhamentoMapper;
@@ -10,9 +11,14 @@ import com.fiap.mindcare.repository.AcompanhamentoRepository;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Service
 public class AcompanhamentoService {
@@ -43,25 +49,37 @@ public class AcompanhamentoService {
 
         entity = acompanhamentoRepository.save(entity);
 
-        return acompanhamentoMapper.toResponse(entity);
+        AcompanhamentoResponseDTO response = acompanhamentoMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     public AcompanhamentoResponseDTO buscarPorId(Long id) {
         Acompanhamento entity = acompanhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Acompanhamento não encontrado"));
 
-        return acompanhamentoMapper.toResponse(entity);
+        AcompanhamentoResponseDTO dto = acompanhamentoMapper.toResponse(entity);
+        addHateoasLinks(dto);
+        return dto;
     }
 
     public Page<AcompanhamentoResponseDTO> listar(Pageable pageable) {
         return acompanhamentoRepository.findAll(pageable)
-                .map(acompanhamentoMapper::toResponse);
+                .map(entity -> {
+                    AcompanhamentoResponseDTO dto = acompanhamentoMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     public Page<AcompanhamentoResponseDTO> listarPorEncaminhamento(Long encaminhamentoId, Pageable pageable) {
         return acompanhamentoRepository
                 .findByEncaminhamentoIdOrderByDataEventoDesc(encaminhamentoId, pageable)
-                .map(acompanhamentoMapper::toResponse);
+                .map(entity -> {
+                    AcompanhamentoResponseDTO dto = acompanhamentoMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     @Transactional
@@ -80,7 +98,9 @@ public class AcompanhamentoService {
 
         entity = acompanhamentoRepository.save(entity);
 
-        return acompanhamentoMapper.toResponse(entity);
+        AcompanhamentoResponseDTO response = acompanhamentoMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     @Transactional
@@ -89,5 +109,22 @@ public class AcompanhamentoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Acompanhamento não encontrado"));
 
         acompanhamentoRepository.delete(entity);
+    }
+
+    private static void addHateoasLinks(AcompanhamentoResponseDTO dto) {
+        var pageableExample = PageRequest.of(0, 20, Sort.by("id").descending());
+        dto.add(linkTo(methodOn(AcompanhamentoController.class).listar(pageableExample)).withRel("listar").withType("GET"));
+
+        if (dto.getEncaminhamento() != null && dto.getEncaminhamento().getId() != null) {
+            Long encaminhamentoId = dto.getEncaminhamento().getId();
+            dto.add(linkTo(methodOn(AcompanhamentoController.class).listarPorEncaminhamento(encaminhamentoId, pageableExample)).withRel("listarPorEncaminhamento").withType("GET"));
+        }
+        dto.add(linkTo(methodOn(AcompanhamentoController.class).criar(new AcompanhamentoRequestDTO())).withRel("criar").withType("POST"));
+
+        if (dto.getId() != null) {
+            dto.add(linkTo(methodOn(AcompanhamentoController.class).buscarPorId(dto.getId())).withSelfRel().withType("GET"));
+            dto.add(linkTo(methodOn(AcompanhamentoController.class).atualizar(dto.getId(), new AcompanhamentoRequestDTO())).withRel("atualizar").withType("PUT"));
+            dto.add(linkTo(methodOn(AcompanhamentoController.class).excluir(dto.getId())).withRel("excluir").withType("DELETE"));
+        }
     }
 }

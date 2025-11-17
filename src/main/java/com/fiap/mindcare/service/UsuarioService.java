@@ -1,5 +1,6 @@
 package com.fiap.mindcare.service;
 
+import com.fiap.mindcare.controller.UsuarioController;
 import com.fiap.mindcare.dto.UsuarioRequestDTO;
 import com.fiap.mindcare.dto.UsuarioResponseDTO;
 import com.fiap.mindcare.mapper.EnumMapper;
@@ -11,9 +12,14 @@ import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Service
 public class UsuarioService {
@@ -30,22 +36,31 @@ public class UsuarioService {
         this.enumMapper = enumMapper;
     }
 
-
     public UsuarioResponseDTO buscarPorId(Long id) {
         UsuarioSistema entity = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return usuarioMapper.toResponse(entity);
+        UsuarioResponseDTO dto = usuarioMapper.toResponse(entity);
+        addHateoasLinks(dto);
+        return dto;
     }
 
     public Page<UsuarioResponseDTO> listar(Pageable pageable) {
         return usuarioRepository.findAll(pageable)
-                .map(usuarioMapper::toResponse);
+                .map(entity -> {
+                    UsuarioResponseDTO dto = usuarioMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     public Page<UsuarioResponseDTO> listarPorEmpresa(Long empresaId, Pageable pageable) {
         return usuarioRepository.findByEmpresaId(empresaId, pageable)
-                .map(usuarioMapper::toResponse);
+                .map(entity -> {
+                    UsuarioResponseDTO dto = usuarioMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     @Transactional
@@ -65,12 +80,13 @@ public class UsuarioService {
         entity.setEmail(dto.getEmail());
         entity.setTipo(enumMapper.toTipoUsuario(dto.getTipo()));
         entity.setEmpresa(empresa);
-
         entity.setSenha(dto.getSenha());
 
         entity = usuarioRepository.save(entity);
 
-        return usuarioMapper.toResponse(entity);
+        UsuarioResponseDTO response = usuarioMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     @Transactional
@@ -79,5 +95,21 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
         usuarioRepository.delete(entity);
+    }
+
+    private static void addHateoasLinks(UsuarioResponseDTO dto) {
+        var pageableExample = PageRequest.of(0, 20, Sort.by("id").descending());
+        dto.add(linkTo(methodOn(UsuarioController.class).listar(pageableExample)).withRel("listar").withType("GET"));
+
+        if (dto.getEmpresa() != null && dto.getEmpresa().getId() != null) {
+            Long empresaId = dto.getEmpresa().getId();
+            dto.add(linkTo(methodOn(UsuarioController.class).listarPorEmpresa(empresaId, pageableExample)).withRel("listarPorEmpresa").withType("GET"));
+        }
+
+        if (dto.getId() != null) {
+            dto.add(linkTo(methodOn(UsuarioController.class).buscarPorId(dto.getId())).withSelfRel().withType("GET"));
+            dto.add(linkTo(methodOn(UsuarioController.class).atualizar(dto.getId(), new UsuarioRequestDTO())).withRel("atualizar").withType("PUT"));
+            dto.add(linkTo(methodOn(UsuarioController.class).excluir(dto.getId())).withRel("excluir").withType("DELETE"));
+        }
     }
 }

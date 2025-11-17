@@ -1,5 +1,6 @@
 package com.fiap.mindcare.service;
 
+import com.fiap.mindcare.controller.TriagemController;
 import com.fiap.mindcare.dto.TriagemRequestDTO;
 import com.fiap.mindcare.dto.TriagemResponseDTO;
 import com.fiap.mindcare.mapper.EnumMapper;
@@ -10,9 +11,14 @@ import com.fiap.mindcare.repository.TriagemRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Service
 public class TriagemService {
@@ -41,24 +47,36 @@ public class TriagemService {
 
         entity = triagemRepository.save(entity);
 
-        return triagemMapper.toResponse(entity);
+        TriagemResponseDTO response = triagemMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     public TriagemResponseDTO buscarPorId(Long id) {
         Triagem entity = triagemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
 
-        return triagemMapper.toResponse(entity);
+        TriagemResponseDTO dto = triagemMapper.toResponse(entity);
+        addHateoasLinks(dto);
+        return dto;
     }
 
     public Page<TriagemResponseDTO> listar(Pageable pageable) {
         return triagemRepository.findAll(pageable)
-                .map(triagemMapper::toResponse);
+                .map(entity -> {
+                    TriagemResponseDTO dto = triagemMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     public Page<TriagemResponseDTO> listarPorUsuario(Long usuarioId, Pageable pageable) {
         return triagemRepository.findByUsuarioIdOrderByDataHoraDesc(usuarioId, pageable)
-                .map(triagemMapper::toResponse);
+                .map(entity -> {
+                    TriagemResponseDTO dto = triagemMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     @Transactional
@@ -77,7 +95,9 @@ public class TriagemService {
 
         entity = triagemRepository.save(entity);
 
-        return triagemMapper.toResponse(entity);
+        TriagemResponseDTO response = triagemMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     @Transactional
@@ -86,5 +106,22 @@ public class TriagemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
 
         triagemRepository.delete(entity);
+    }
+
+    private static void addHateoasLinks(TriagemResponseDTO dto) {
+        var pageableExample = PageRequest.of(0, 20, Sort.by("id").descending());
+        dto.add(linkTo(methodOn(TriagemController.class).listar(pageableExample)).withRel("listar").withType("GET"));
+
+        if (dto.getUsuario() != null && dto.getUsuario().getId() != null) {
+            Long usuarioId = dto.getUsuario().getId();
+            dto.add(linkTo(methodOn(TriagemController.class).listarPorUsuario(usuarioId, pageableExample)).withRel("listarPorUsuario").withType("GET"));
+        }
+        dto.add(linkTo(methodOn(TriagemController.class).criar(new TriagemRequestDTO())).withRel("criar").withType("POST"));
+
+        if (dto.getId() != null) {
+            dto.add(linkTo(methodOn(TriagemController.class).buscarPorId(dto.getId())).withSelfRel().withType("GET"));
+            dto.add(linkTo(methodOn(TriagemController.class).atualizar(dto.getId(), new TriagemRequestDTO())).withRel("atualizar").withType("PUT"));
+            dto.add(linkTo(methodOn(TriagemController.class).excluir(dto.getId())).withRel("excluir").withType("DELETE"));
+        }
     }
 }

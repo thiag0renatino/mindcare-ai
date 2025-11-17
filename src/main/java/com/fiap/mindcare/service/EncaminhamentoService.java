@@ -1,5 +1,6 @@
 package com.fiap.mindcare.service;
 
+import com.fiap.mindcare.controller.EncaminhamentoController;
 import com.fiap.mindcare.dto.EncaminhamentoRequestDTO;
 import com.fiap.mindcare.dto.EncaminhamentoResponseDTO;
 import com.fiap.mindcare.mapper.EncaminhamentoMapper;
@@ -12,9 +13,14 @@ import com.fiap.mindcare.repository.ProfissionalRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @Service
 public class EncaminhamentoService {
@@ -63,23 +69,35 @@ public class EncaminhamentoService {
 
         entity = encaminhamentoRepository.save(entity);
 
-        return encaminhamentoMapper.toResponse(entity);
+        EncaminhamentoResponseDTO response = encaminhamentoMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     public EncaminhamentoResponseDTO buscarPorId(Long id) {
         Encaminhamento entity = encaminhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
-        return encaminhamentoMapper.toResponse(entity);
+        EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);
+        addHateoasLinks(dto);
+        return dto;
     }
 
     public Page<EncaminhamentoResponseDTO> listar(Pageable pageable) {
         return encaminhamentoRepository.findAll(pageable)
-                .map(encaminhamentoMapper::toResponse);
+                .map(entity -> {
+                    EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     public Page<EncaminhamentoResponseDTO> listarPorTriagem(Long triagemId, Pageable pageable) {
         return encaminhamentoRepository.findByTriagemId(triagemId, pageable)
-                .map(encaminhamentoMapper::toResponse);
+                .map(entity -> {
+                    EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);
+                    addHateoasLinks(dto);
+                    return dto;
+                });
     }
 
     @Transactional
@@ -115,7 +133,9 @@ public class EncaminhamentoService {
 
         entity = encaminhamentoRepository.save(entity);
 
-        return encaminhamentoMapper.toResponse(entity);
+        EncaminhamentoResponseDTO response = encaminhamentoMapper.toResponse(entity);
+        addHateoasLinks(response);
+        return response;
     }
 
     @Transactional
@@ -123,5 +143,23 @@ public class EncaminhamentoService {
         Encaminhamento entity = encaminhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
         encaminhamentoRepository.delete(entity);
+    }
+
+    private static void addHateoasLinks(EncaminhamentoResponseDTO dto) {
+        var pageableExample = PageRequest.of(0, 20, Sort.by("id").descending());
+        dto.add(linkTo(methodOn(EncaminhamentoController.class).listar(pageableExample)).withRel("listar").withType("GET"));
+
+        if (dto.getTriagem() != null && dto.getTriagem().getId() != null) {
+            Long triagemId = dto.getTriagem().getId();
+            dto.add(linkTo(methodOn(EncaminhamentoController.class).listarPorTriagem(triagemId, pageableExample)).withRel("listarPorTriagem").withType("GET"));
+        }
+
+        dto.add(linkTo(methodOn(EncaminhamentoController.class).criar(new EncaminhamentoRequestDTO())).withRel("criar").withType("POST"));
+
+        if (dto.getId() != null) {
+            dto.add(linkTo(methodOn(EncaminhamentoController.class).buscarPorId(dto.getId())).withSelfRel().withType("GET"));
+            dto.add(linkTo(methodOn(EncaminhamentoController.class).atualizar(dto.getId(), new EncaminhamentoRequestDTO())).withRel("atualizar").withType("PUT"));
+            dto.add(linkTo(methodOn(EncaminhamentoController.class).excluir(dto.getId())).withRel("excluir").withType("DELETE"));
+        }
     }
 }
