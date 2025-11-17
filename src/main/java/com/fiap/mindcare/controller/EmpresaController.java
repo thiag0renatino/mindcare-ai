@@ -3,6 +3,8 @@ package com.fiap.mindcare.controller;
 import com.fiap.mindcare.dto.EmpresaRequestDTO;
 import com.fiap.mindcare.dto.EmpresaResponseDTO;
 import com.fiap.mindcare.service.EmpresaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+@Tag(name = "Empresas", description = "Operações relacionadas ao cadastro e gestão de empresas")
 @RestController
 @RequestMapping("/api/empresas")
 public class EmpresaController {
@@ -25,6 +28,10 @@ public class EmpresaController {
         this.empresaService = empresaService;
     }
 
+    @Operation(
+            summary = "Criar uma nova empresa",
+            description = "Cadastra uma nova empresa com CNPJ, nome e plano de saúde vinculado."
+    )
     @PostMapping
     public ResponseEntity<EmpresaResponseDTO> criar(@Valid @RequestBody EmpresaRequestDTO dto) {
         EmpresaResponseDTO response = empresaService.criar(dto);
@@ -37,12 +44,20 @@ public class EmpresaController {
         return ResponseEntity.created(uri).body(response);
     }
 
+    @Operation(
+            summary = "Buscar empresa por ID",
+            description = "Retorna os dados detalhados de uma empresa específica."
+    )
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaResponseDTO> buscarPorId(@PathVariable Long id) {
         EmpresaResponseDTO response = empresaService.buscarPorId(id);
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Listar empresas",
+            description = "Retorna uma lista paginada de todas as empresas cadastradas."
+    )
     @GetMapping
     public ResponseEntity<Page<EmpresaResponseDTO>> listar(@ParameterObject
                                                            @PageableDefault(page = 0, size = 20, sort = "id", direction = Sort.Direction.DESC)
@@ -51,12 +66,20 @@ public class EmpresaController {
         return ResponseEntity.ok(page);
     }
 
+    @Operation(
+            summary = "Atualizar empresa",
+            description = "Atualiza os dados de uma empresa já cadastrada."
+    )
     @PutMapping("/{id}")
     public ResponseEntity<EmpresaResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody EmpresaRequestDTO dto) {
         EmpresaResponseDTO response = empresaService.atualizar(id, dto);
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Excluir empresa",
+            description = "Remove permanentemente uma empresa do sistema."
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         empresaService.excluir(id);

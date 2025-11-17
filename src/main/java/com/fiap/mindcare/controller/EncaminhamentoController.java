@@ -3,6 +3,8 @@ package com.fiap.mindcare.controller;
 import com.fiap.mindcare.dto.EncaminhamentoRequestDTO;
 import com.fiap.mindcare.dto.EncaminhamentoResponseDTO;
 import com.fiap.mindcare.service.EncaminhamentoService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -15,6 +17,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 
+@Tag(name = "Encaminhamentos", description = "Administra encaminhamentos clínicos originados das triagens")
 @RestController
 @RequestMapping("/api/encaminhamentos")
 public class EncaminhamentoController {
@@ -25,6 +28,10 @@ public class EncaminhamentoController {
         this.encaminhamentoService = encaminhamentoService;
     }
 
+    @Operation(
+            summary = "Criar um novo encaminhamento",
+            description = "Registra um encaminhamento para uma triagem. Campos com valores fixos: tipo (EXAME, ESPECIALIDADE, PROFISSIONAL, HABITO), prioridade (BAIXA, MEDIA, ALTA), status (PENDENTE, AGENDADO, CONCLUIDO, CANCELADO)."
+    )
     @PostMapping
     public ResponseEntity<EncaminhamentoResponseDTO> criar(@Valid @RequestBody EncaminhamentoRequestDTO dto) {
         EncaminhamentoResponseDTO response = encaminhamentoService.criar(dto);
@@ -37,12 +44,20 @@ public class EncaminhamentoController {
         return ResponseEntity.created(uri).body(response);
     }
 
+    @Operation(
+            summary = "Buscar encaminhamento por ID",
+            description = "Retorna os dados completos de um encaminhamento específico."
+    )
     @GetMapping("/{id}")
     public ResponseEntity<EncaminhamentoResponseDTO> buscarPorId(@PathVariable Long id) {
         EncaminhamentoResponseDTO response = encaminhamentoService.buscarPorId(id);
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Listar encaminhamentos",
+            description = "Retorna os encaminhamentos cadastrados com suporte a paginação e ordenação."
+    )
     @GetMapping
     public ResponseEntity<Page<EncaminhamentoResponseDTO>> listar(@ParameterObject
                                                                   @PageableDefault(page = 0, size = 20, sort = "id", direction = Sort.Direction.DESC)
@@ -51,6 +66,10 @@ public class EncaminhamentoController {
         return ResponseEntity.ok(page);
     }
 
+    @Operation(
+            summary = "Listar encaminhamentos por triagem",
+            description = "Filtra os encaminhamentos vinculados a uma triagem utilizando parâmetros de paginação."
+    )
     @GetMapping("/triagem/{triagemId}")
     public ResponseEntity<Page<EncaminhamentoResponseDTO>> listarPorTriagem(@PathVariable Long triagemId,
                                                                             @ParameterObject
@@ -60,12 +79,20 @@ public class EncaminhamentoController {
         return ResponseEntity.ok(page);
     }
 
+    @Operation(
+            summary = "Atualizar encaminhamento",
+            description = "Permite alterar um encaminhamento já existente. Campos com valores fixos: tipo (EXAME, ESPECIALIDADE, PROFISSIONAL, HABITO), prioridade (BAIXA, MEDIA, ALTA), status (PENDENTE, AGENDADO, CONCLUIDO, CANCELADO)."
+    )
     @PutMapping("/{id}")
     public ResponseEntity<EncaminhamentoResponseDTO> atualizar(@PathVariable Long id, @Valid @RequestBody EncaminhamentoRequestDTO dto) {
         EncaminhamentoResponseDTO response = encaminhamentoService.atualizar(id, dto);
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+            summary = "Excluir encaminhamento",
+            description = "Remove permanentemente um encaminhamento que não será mais acompanhado."
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         encaminhamentoService.excluir(id);
