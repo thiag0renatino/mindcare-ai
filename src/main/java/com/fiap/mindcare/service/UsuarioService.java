@@ -11,6 +11,7 @@ import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.PasswordValidator;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,13 +35,15 @@ public class UsuarioService implements UserDetailsService {
     private final UsuarioMapper usuarioMapper;
     private final EnumMapper enumMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordValidator passwordPolicyValidator;
 
-    public UsuarioService(UsuarioSistemaRepository usuarioRepository, EmpresaRepository empresaRepository, UsuarioMapper usuarioMapper, EnumMapper enumMapper, PasswordEncoder passwordEncoder) {
+    public UsuarioService(UsuarioSistemaRepository usuarioRepository, EmpresaRepository empresaRepository, UsuarioMapper usuarioMapper, EnumMapper enumMapper, PasswordEncoder passwordEncoder, PasswordValidator passwordPolicyValidator) {
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
         this.usuarioMapper = usuarioMapper;
         this.enumMapper = enumMapper;
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicyValidator = passwordPolicyValidator;
     }
 
     public UsuarioResponseDTO buscarPorId(Long id) {
@@ -94,6 +97,7 @@ public class UsuarioService implements UserDetailsService {
         entity.setTipo(enumMapper.toTipoUsuario(dto.getTipo()));
         entity.setEmpresa(empresa);
         if (StringUtils.isNotBlank(dto.getSenha())) {
+            passwordPolicyValidator.validate(dto.getSenha());
             entity.setSenha(passwordEncoder.encode(dto.getSenha()));
         }
 

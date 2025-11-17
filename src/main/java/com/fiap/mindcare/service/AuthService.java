@@ -9,6 +9,7 @@ import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.security.jwt.JwtTokenProvider;
+import com.fiap.mindcare.service.security.PasswordValidator;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import io.micrometer.common.util.StringUtils;
@@ -29,13 +30,15 @@ public class AuthService {
     private final UsuarioSistemaRepository usuarioRepository;
     private final EmpresaRepository empresaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordValidator passwordPolicyValidator;
 
-    public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider tokenProvider, UsuarioSistemaRepository usuarioRepository, EmpresaRepository empresaRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider tokenProvider, UsuarioSistemaRepository usuarioRepository, EmpresaRepository empresaRepository, PasswordEncoder passwordEncoder, PasswordValidator passwordPolicyValidator) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicyValidator = passwordPolicyValidator;
     }
 
     public ResponseEntity<String> register(AuthRequestDTO credential) {
@@ -46,6 +49,8 @@ public class AuthService {
         if (usuarioRepository.existsByEmail(credential.getEmail())) {
             throw new BusinessException("Já existe um usuário com este e-mail");
         }
+
+        passwordPolicyValidator.validate(credential.getSenha());
 
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setNome(credential.getNome());
