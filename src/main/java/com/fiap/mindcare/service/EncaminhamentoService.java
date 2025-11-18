@@ -1,13 +1,16 @@
 package com.fiap.mindcare.service;
 
 import com.fiap.mindcare.controller.EncaminhamentoController;
+import com.fiap.mindcare.dto.EncaminhamentoRecomendadoDTO;
 import com.fiap.mindcare.dto.EncaminhamentoRequestDTO;
 import com.fiap.mindcare.dto.EncaminhamentoResponseDTO;
 import com.fiap.mindcare.mapper.EncaminhamentoMapper;
 import com.fiap.mindcare.mapper.EnumMapper;
+import com.fiap.mindcare.model.Empresa;
 import com.fiap.mindcare.model.Encaminhamento;
 import com.fiap.mindcare.model.Profissional;
 import com.fiap.mindcare.model.Triagem;
+import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.ProfissionalRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
@@ -27,13 +30,15 @@ public class EncaminhamentoService {
 
     private final EncaminhamentoRepository encaminhamentoRepository;
     private final TriagemRepository triagemRepository;
+    private final EmpresaRepository empresaRepository;
     private final ProfissionalRepository profissionalRepository;
     private final EncaminhamentoMapper encaminhamentoMapper;
     private final EnumMapper enumMapper;
 
-    public EncaminhamentoService(EncaminhamentoRepository encaminhamentoRepository, TriagemRepository triagemRepository, ProfissionalRepository profissionalRepository, EncaminhamentoMapper encaminhamentoMapper, EnumMapper enumMapper) {
+    public EncaminhamentoService(EncaminhamentoRepository encaminhamentoRepository, TriagemRepository triagemRepository, EmpresaRepository empresaRepository, ProfissionalRepository profissionalRepository, EncaminhamentoMapper encaminhamentoMapper, EnumMapper enumMapper) {
         this.encaminhamentoRepository = encaminhamentoRepository;
         this.triagemRepository = triagemRepository;
+        this.empresaRepository = empresaRepository;
         this.profissionalRepository = profissionalRepository;
         this.encaminhamentoMapper = encaminhamentoMapper;
         this.enumMapper = enumMapper;
@@ -143,6 +148,28 @@ public class EncaminhamentoService {
         Encaminhamento entity = encaminhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
         encaminhamentoRepository.delete(entity);
+    }
+
+    public Page<EncaminhamentoRecomendadoDTO> listarRecomendados(Long empresaId, String especialidade, Pageable pageable) {
+        Empresa empresa = empresaRepository.findById(empresaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
+
+        String especialidadeFiltro = especialidade != null ? especialidade : "";
+        String convenio = empresa.getPlanoSaude() != null ? empresa.getPlanoSaude() : "";
+
+        return profissionalRepository
+                .findByEspecialidadeContainingIgnoreCaseAndConvenioContainingIgnoreCase(especialidadeFiltro, convenio, pageable)
+                .map(this::toRecomendadoDto);
+    }
+
+    private EncaminhamentoRecomendadoDTO toRecomendadoDto(Profissional profissional) {
+        return new EncaminhamentoRecomendadoDTO(
+                profissional.getId(),
+                profissional.getNome(),
+                profissional.getEspecialidade(),
+                profissional.getContato(),
+                profissional.getConvenio()
+        );
     }
 
     private static void addHateoasLinks(EncaminhamentoResponseDTO dto) {

@@ -1,6 +1,7 @@
 package com.fiap.mindcare.controller;
 
 import com.fiap.mindcare.config.security.SecurityConfig;
+import com.fiap.mindcare.dto.EncaminhamentoRecomendadoDTO;
 import com.fiap.mindcare.dto.EncaminhamentoRequestDTO;
 import com.fiap.mindcare.dto.EncaminhamentoResponseDTO;
 import com.fiap.mindcare.service.EncaminhamentoService;
@@ -66,6 +67,20 @@ public class EncaminhamentoController {
                                                                   @PageableDefault(page = 0, size = 20, sort = "id", direction = Sort.Direction.DESC)
                                                                   Pageable pageable) {
         Page<EncaminhamentoResponseDTO> page = encaminhamentoService.listar(pageable);
+        return ResponseEntity.ok(page);
+    }
+
+    @Operation(
+            summary = "Recomendar profissionais/exames conveniados",
+            description = "Retorna uma lista paginada de profissionais filtrados por especialidade e convênio médico da empresa informada."
+    )
+    @GetMapping("/recomendados")
+    public ResponseEntity<Page<EncaminhamentoRecomendadoDTO>> listarRecomendados(@RequestParam Long empresaId,
+                                                                                 @RequestParam(required = false, defaultValue = "") String especialidade,
+                                                                                 @ParameterObject
+                                                                                 @PageableDefault(page = 0, size = 20, sort = "nome", direction = Sort.Direction.ASC)
+                                                                                 Pageable pageable) {
+        Page<EncaminhamentoRecomendadoDTO> page = encaminhamentoService.listarRecomendados(empresaId, especialidade, pageable);
         return ResponseEntity.ok(page);
     }
 
