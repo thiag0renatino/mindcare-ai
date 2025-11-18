@@ -1,0 +1,59 @@
+package com.fiap.mindcare.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+public class MindCheckAiRequestDTO {
+
+    @NotNull
+    private Long usuarioId;
+
+    @NotBlank
+    @Size(min = 10)
+    private String relato;
+
+    private String sintomas;
+    private String humor;
+    private String rotina;
+
+    public Long getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(Long usuarioId) {
+        this.usuarioId = usuarioId;
+    }
+
+    public String getRelato() {
+        return relato;
+    }
+
+    public void setRelato(String relato) {
+        this.relato = relato;
+    }
+
+    public String getSintomas() {
+        return sintomas;
+    }
+
+    public void setSintomas(String sintomas) {
+        this.sintomas = sintomas;
+    }
+
+    public String getHumor() {
+        return humor;
+    }
+
+    public void setHumor(String humor) {
+        this.humor = humor;
+    }
+
+    public String getRotina() {
+        return rotina;
+    }
+
+    public void setRotina(String rotina) {
+        this.rotina = rotina;
+    }
+}

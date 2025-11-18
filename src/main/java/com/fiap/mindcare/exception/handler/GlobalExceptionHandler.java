@@ -3,6 +3,7 @@ package com.fiap.mindcare.exception.handler;
 import com.fiap.mindcare.exception.ExceptionResponse;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.InvalidJwtAuthenticationException;
+import com.fiap.mindcare.service.exception.MindCheckAiException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -64,6 +65,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request.getDescription(false)
         );
         return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(MindCheckAiException.class)
+    public final ResponseEntity<ExceptionResponse> handleMindCheckAiException(
+            MindCheckAiException ex, WebRequest request) {
+
+        ExceptionResponse response = new ExceptionResponse(
+                new Date(),
+                ex.getMessage(),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(response, HttpStatus.BAD_GATEWAY);
     }
 
 }
