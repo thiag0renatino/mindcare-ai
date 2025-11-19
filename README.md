@@ -61,6 +61,12 @@ Sem esses valores, o `ChatClient` não consegue gerar o diagnóstico automatizad
 | `AZURE_OPENAI_ENDPOINT` | Endpoint do recurso Azure OpenAI |
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment (modelo) habilitado no Azure OpenAI |
 
+### Internacionalização da API
+
+- Mensagens de erro e validação usam `Accept-Language` (ou padrão `pt-BR` quando ausente).
+- Idiomas suportados: português do Brasil e inglês (`en`/`en-US`).
+- Exemplo: enviar `Accept-Language: en-US` retorna respostas do handler em inglês.
+
 ---
 
 ## Tecnologias e Ferramentas Utilizadas
