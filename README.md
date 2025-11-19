@@ -35,7 +35,7 @@ O fluxo de triagem inteligente utiliza o Spring AI com Azure OpenAI (configurada
 3. **Persistência automática**: a resposta é convertida em `MindCheckAiResponseDTO`, uma nova `Triagem` é salva e, quando o risco é `MODERADO` ou `ALTO`, um `Encaminhamento` é criado com prioridade proporcional ao risco.
 4. **Retorno completo**: o payload da IA já vem acrescido dos dados da triagem persistida e, se houver, do encaminhamento gerado.
 
-Esse fluxo garante que toda análise realizada pela IA deixe rastros no banco (triagem e encaminhamento).
+Esse fluxo garante que toda análise realizada pela IA deixe registros no banco (triagem e encaminhamento).
 
 ---
 
@@ -51,23 +51,38 @@ AZURE_OPENAI_DEPLOYMENT=<deployment-gpt4o-ou-outro>
 
 Sem esses valores, o `ChatClient` não consegue gerar o diagnóstico automatizado.
 
-### Variáveis de ambiente necessárias
+**Como provisionar no Azure**
+1. No portal Azure, crie um recurso “Foundry” (Azure AI Foundry / AI Studio),  escolhendo uma região disponível e um Resource Group.
+2. Dentro do recurso, acesse `Keys & Endpoint` para copiar o `Endpoint` (`AZURE_OPENAI_ENDPOINT`) e gerar a chave (`AZURE_OPENAI_API_KEY`).
+3. Na aba `Deployments`, crie um novo deployment para o modelo desejado (ex.: GPT-4o) e use o nome definido como o valor da variável: `AZURE_OPENAI_DEPLOYMENT`.
+4. Para mais detalhes, consulte a documentação oficial: [Criar recurso](https://learn.microsoft.com/azure/ai-services/openai/how-to/create-resource).
+
+### Variáveis de ambiente 
 
 | Variável | Descrição |
 | --- | --- |
 | `DB_USERNAME` / `DB_PASSWORD` | Credenciais do banco Oracle |
 | `JWT_SECRET` | Chave para assinar tokens JWT |
-| `AZURE_OPENAI_API_KEY` | Chave da Azure OpenAI usada pelo Spring AI |
-| `AZURE_OPENAI_ENDPOINT` | Endpoint do recurso Azure OpenAI |
-| `AZURE_OPENAI_DEPLOYMENT` | Deployment (modelo) habilitado no Azure OpenAI |
+| `RABBITMQ_HOST` / `RABBITMQ_PORT` | Host e porta do RabbitMQ |
+| `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` | Credenciais do broker |
+| `MINDCHECK_EXCHANGE` / `MINDCHECK_QUEUE` / `MINDCHECK_ROUTING_KEY` | Identificadores das filas utilizadas |
 
-### Internacionalização da API
+> Azure: obrigatório. RabbitMQ: já possui default (`localhost`/`guest`); altere apenas se precisar.
 
-- Mensagens de erro e validação usam `Accept-Language` (ou padrão `pt-BR` quando ausente).
-- Idiomas suportados: português do Brasil e inglês (`en`/`en-US`).
-- Exemplo: enviar `Accept-Language: en-US` retorna respostas do handler em inglês.
 
----
+### Mensageria assíncrona
+
+- Cada triagem da MindCheck AI publica um `TriagemAvaliacaoEvent` no RabbitMQ (`mindcheck.triagem.exchange`).
+- O listener `MindCheckAiEventListener` consome os eventos para processar alertas/dashboards sem bloquear a requisição.
+- Para desenvolvimento local: `docker run -d --name mindcheck-rabbit -p 5672:5672 -p 15672:15672 rabbitmq:3-management`.
+
+#### Como testar a mensageria
+1. Inicie o RabbitMQ com o comando acima (usuario `guest/guest`).
+2. Rode a API (`mvn spring-boot:run`) e acesse `http://localhost:15672` para confirmar a fila `mindcheck.triagem.queue`.
+3. Autentique-se e chame `POST /api/mindcheck-ai/analises` com payload válido.
+4. No painel do RabbitMQ, verifique que a fila recebeu a mensagem e logo ficou vazia (listener consumiu).
+5. Veja os logs da aplicação: `MindCheckAiEventListener` deve registrar o risco e a especialidade recomendada (Sucesso na publicação da mensagem).
+
 
 ## Tecnologias e Ferramentas Utilizadas
 
@@ -76,6 +91,7 @@ Sem esses valores, o `ChatClient` não consegue gerar o diagnóstico automatizad
 - **Spring AI + Azure OpenAI (GPT-4o)** – análise automática de relatos
 - **Spring Security + JWT** – autenticação/autorização
 - **Spring Data JPA** com **Oracle** (prod) e **H2** (dev)
+- **Spring AMQP (RabbitMQ)** – mensageria assíncrona
 - **MapStruct** – mapeamento DTO ↔ entidade
 - **Springdoc OpenAPI / Swagger UI**
 - **Maven**
@@ -115,12 +131,24 @@ A documentação estará disponível em:
 - Criar arquivo `.env` na raiz do projeto contendo:
 
 ```env
+# Banco de dados
 DB_USERNAME=
 DB_PASSWORD=
 JWT_SECRET=
+
+# Para o endpoint com IA
 AZURE_OPENAI_API_KEY=
 AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_DEPLOYMENT=
+
+# RabbitMQ (opcional se quiser utilizar o padrão localhost/guest)
+RABBITMQ_HOST=
+RABBITMQ_PORT=
+RABBITMQ_USERNAME=
+RABBITMQ_PASSWORD=
+MINDCHECK_EXCHANGE=
+MINDCHECK_QUEUE=
+MINDCHECK_ROUTING_KEY=
 ```
 
 ---
@@ -143,8 +171,6 @@ API disponível em:
 👉 `http://localhost:8080`
 
 ---
-
-
 
 ## Endpoints principais
 - **Auth**

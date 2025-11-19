@@ -10,16 +10,18 @@ import com.fiap.mindcare.enuns.PrioridadeEncaminhamento;
 import com.fiap.mindcare.enuns.RiscoTriagem;
 import com.fiap.mindcare.enuns.StatusEncaminhamento;
 import com.fiap.mindcare.enuns.TipoEncaminhamento;
-import com.fiap.mindcare.service.exception.MindCheckAiException;
 import com.fiap.mindcare.mapper.EncaminhamentoMapper;
 import com.fiap.mindcare.mapper.EnumMapper;
 import com.fiap.mindcare.mapper.TriagemMapper;
+import com.fiap.mindcare.messaging.event.TriagemAvaliacaoEvent;
+import com.fiap.mindcare.messaging.publisher.MindCheckAiEventPublisher;
 import com.fiap.mindcare.model.Encaminhamento;
 import com.fiap.mindcare.model.Triagem;
 import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
+import com.fiap.mindcare.service.exception.MindCheckAiException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
@@ -39,6 +41,7 @@ public class MindCheckAiService {
     private final TriagemMapper triagemMapper;
     private final EncaminhamentoMapper encaminhamentoMapper;
     private final EnumMapper enumMapper;
+    private final MindCheckAiEventPublisher eventPublisher;
 
     public MindCheckAiService(ChatClient.Builder chatClientBuilder,
                               ObjectMapper objectMapper,
@@ -47,7 +50,8 @@ public class MindCheckAiService {
                               EncaminhamentoRepository encaminhamentoRepository,
                               TriagemMapper triagemMapper,
                               EncaminhamentoMapper encaminhamentoMapper,
-                              EnumMapper enumMapper) {
+                              EnumMapper enumMapper,
+                              MindCheckAiEventPublisher eventPublisher) {
         this.chatClient = chatClientBuilder
                 .defaultSystem("""
                         Você é a MindCheck AI, um assistente de triagem corporativa.
@@ -70,6 +74,7 @@ public class MindCheckAiService {
         this.triagemMapper = triagemMapper;
         this.encaminhamentoMapper = encaminhamentoMapper;
         this.enumMapper = enumMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -89,6 +94,7 @@ public class MindCheckAiService {
             aiPayload.setEncaminhamento(encResponse);
         }
 
+        publicarEvento(triagem, encaminhamento);
         return aiPayload;
     }
 
@@ -188,5 +194,20 @@ public class MindCheckAiService {
 
     private String valueOrDefault(String value) {
         return (value == null || value.isBlank()) ? "Não informado" : value.trim();
+    }
+
+    private void publicarEvento(Triagem triagem, Encaminhamento encaminhamento) {
+        if (triagem == null || eventPublisher == null) {
+            return;
+        }
+        TriagemAvaliacaoEvent event = new TriagemAvaliacaoEvent(
+                triagem.getId(),
+                triagem.getUsuario() != null ? triagem.getUsuario().getId() : null,
+                triagem.getRisco() != null ? triagem.getRisco().name() : null,
+                encaminhamento != null,
+                encaminhamento != null ? encaminhamento.getEspecialidade() : null,
+                triagem.getDataHora()
+        );
+        eventPublisher.publicarTriagem(event);
     }
 }
