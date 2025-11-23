@@ -24,6 +24,7 @@ import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.service.exception.MindCheckAiException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +52,7 @@ public class MindCheckAiService {
                               TriagemMapper triagemMapper,
                               EncaminhamentoMapper encaminhamentoMapper,
                               EnumMapper enumMapper,
-                              MindCheckAiEventPublisher eventPublisher) {
+                              ObjectProvider<MindCheckAiEventPublisher> eventPublisherProvider) {
         this.chatClient = chatClientBuilder
                 .defaultSystem("""
                         Você é a MindCheck AI, um assistente de triagem corporativa.
@@ -74,7 +75,7 @@ public class MindCheckAiService {
         this.triagemMapper = triagemMapper;
         this.encaminhamentoMapper = encaminhamentoMapper;
         this.enumMapper = enumMapper;
-        this.eventPublisher = eventPublisher;
+        this.eventPublisher = eventPublisherProvider.getIfAvailable();
     }
 
     @Transactional

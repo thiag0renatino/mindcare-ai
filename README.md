@@ -66,6 +66,7 @@ Sem esses valores, o `ChatClient` não consegue gerar o diagnóstico automatizad
 | `RABBITMQ_HOST` / `RABBITMQ_PORT` | Host e porta do RabbitMQ |
 | `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` | Credenciais do broker |
 | `MINDCHECK_EXCHANGE` / `MINDCHECK_QUEUE` / `MINDCHECK_ROUTING_KEY` | Identificadores das filas utilizadas |
+| `MINDCHECK_RABBIT_ENABLED` | `true/false` para habilitar a mensageria (default `true`) |
 
 > Azure: obrigatório. RabbitMQ: já possui default (`localhost`/`guest`); altere apenas se precisar.
 
@@ -75,6 +76,7 @@ Sem esses valores, o `ChatClient` não consegue gerar o diagnóstico automatizad
 - Cada triagem da MindCheck AI publica um `TriagemAvaliacaoEvent` no RabbitMQ (`mindcheck.triagem.exchange`).
 - O listener `MindCheckAiEventListener` consome os eventos para processar alertas/dashboards sem bloquear a requisição.
 - Para desenvolvimento local: `docker run -d --name mindcheck-rabbit -p 5672:5672 -p 15672:15672 rabbitmq:3-management`.
+- Caso não queira iniciar o RabbitMQ (por exemplo, em ambiente local), defina `MINDCHECK_RABBIT_ENABLED=false` ou ajuste `mindcheck.rabbitmq.enabled=false` no `application.properties` para que todos os beans de mensageria sejam desabilitados.
 
 #### Como testar a mensageria
 1. Inicie o RabbitMQ com o comando acima (usuario `guest/guest`).
@@ -142,6 +144,7 @@ AZURE_OPENAI_ENDPOINT=
 AZURE_OPENAI_DEPLOYMENT=
 
 # RabbitMQ (opcional se quiser utilizar o padrão localhost/guest)
+MINDCHECK_RABBIT_ENABLED=true
 RABBITMQ_HOST=
 RABBITMQ_PORT=
 RABBITMQ_USERNAME=
