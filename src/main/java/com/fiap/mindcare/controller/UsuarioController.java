@@ -1,5 +1,6 @@
 package com.fiap.mindcare.controller;
 
+import com.azure.core.annotation.Get;
 import com.fiap.mindcare.config.security.SecurityConfig;
 import com.fiap.mindcare.dto.UsuarioRequestDTO;
 import com.fiap.mindcare.dto.UsuarioResponseDTO;
@@ -15,6 +16,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 @Tag(name = "Usuários", description = "Gerencia usuários da plataforma corporativa e seus perfis de acesso")
 @RestController
@@ -61,6 +64,11 @@ public class UsuarioController {
                                                                      Pageable pageable) {
         Page<UsuarioResponseDTO> page = usuarioService.listarPorEmpresa(empresaId, pageable);
         return ResponseEntity.ok(page);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioResponseDTO> me(Principal principal) {
+        return ResponseEntity.ok(usuarioService.me(principal));
     }
 
     @Operation(

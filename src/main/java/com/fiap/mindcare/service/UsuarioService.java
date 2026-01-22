@@ -24,6 +24,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.Principal;
+
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
@@ -77,6 +79,19 @@ public class UsuarioService implements UserDetailsService {
                     addHateoasLinks(dto);
                     return dto;
                 });
+    }
+
+    @Transactional(readOnly = true)
+    public UsuarioResponseDTO me(Principal principal) {
+        return findByEmail(principal.getName());
+    }
+
+    public UsuarioResponseDTO findByEmail(String email) {
+        UsuarioSistema usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException(email));
+        UsuarioResponseDTO dto = usuarioMapper.toResponse(usuario);
+        addHateoasLinks(dto);
+        return dto;
     }
 
     @Transactional
