@@ -77,7 +77,7 @@ public class AuthService {
         );
 
         UsuarioSistema usuario = usuarioRepository.findByEmail(credential.getEmail())
-                .orElseThrow(() -> new UsernameNotFoundException("Email: " + credential.getEmail() + " não encontrado"));
+                .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas"));
 
         var roles = usuario.getAuthorities()
                 .stream()
@@ -90,7 +90,7 @@ public class AuthService {
 
     public ResponseEntity<TokenDTO> refreshToken(String email, String refreshToken) {
         UsuarioSistema usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuário com Email: " + email + " não encontrado"));
+                .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas"));
 
         if (StringUtils.isBlank(refreshToken)) {
             throw new BusinessException("Refresh token inválido");
