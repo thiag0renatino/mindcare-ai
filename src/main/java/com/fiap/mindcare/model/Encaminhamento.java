@@ -16,7 +16,7 @@ import java.util.Objects;
 public class Encaminhamento {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "encaminhamento_seq")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull

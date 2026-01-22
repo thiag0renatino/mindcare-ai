@@ -15,7 +15,7 @@ import java.util.Objects;
 public class Triagem {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "triagem_seq")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull

@@ -30,7 +30,7 @@ public class MindcareApplication implements CommandLineRunner {
     @Override
     public void run(String... args) {
         final String emailAdmin = "admin@mindcareai.com";
-        final String senhaAdmin = "admin123";
+        final String senhaAdmin = "admin123mindcareai";
 
         if (!usuarioSistemaRepository.existsByEmail(emailAdmin)) {
 

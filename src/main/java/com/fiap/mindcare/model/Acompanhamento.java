@@ -15,7 +15,7 @@ import java.util.Objects;
 public class Acompanhamento {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "acompanhamento_seq")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull

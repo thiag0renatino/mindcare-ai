@@ -13,7 +13,7 @@ import java.util.Objects;
 public class Empresa {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "empresa_seq")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
