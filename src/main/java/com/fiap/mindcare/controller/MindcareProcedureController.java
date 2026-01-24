@@ -2,11 +2,13 @@ package com.fiap.mindcare.controller;
 
 import com.fiap.mindcare.service.MindcareProcedureService;
 import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/procedures/insert")
+@ConditionalOnProperty(prefix = "app.procedures", name = "enabled", havingValue = "true")
 public class MindcareProcedureController {
 
     private final MindcareProcedureService service;

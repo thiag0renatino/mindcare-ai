@@ -1,6 +1,7 @@
 package com.fiap.mindcare.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -13,6 +14,7 @@ import java.sql.Types;
 import java.time.LocalDateTime;
 
 @Service
+@ConditionalOnProperty(prefix = "app.procedures", name = "enabled", havingValue = "true")
 public class MindcareProcedureService {
 
     private final JdbcTemplate jdbcTemplate;

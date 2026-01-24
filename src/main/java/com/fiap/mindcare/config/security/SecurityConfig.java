@@ -66,9 +66,9 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/api/procedures/**"
+                                "/swagger-ui.html"
                         ).permitAll()
+                        .requestMatchers("api/procedures/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/usuarios").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/usuarios/**").hasAuthority("ADMIN")
