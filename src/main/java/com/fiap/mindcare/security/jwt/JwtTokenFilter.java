@@ -1,5 +1,6 @@
 package com.fiap.mindcare.security.jwt;
 
+import com.fiap.mindcare.service.exception.InvalidJwtAuthenticationException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,12 +27,17 @@ public class JwtTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String token = tokenProvider.resolveToken(request);
-        if (StringUtils.isNotBlank(token) && tokenProvider.validateToken(token)) {
-            Authentication authentication = tokenProvider.getAuthentication(token);
-            if (authentication != null) {
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+        try {
+            String token = tokenProvider.resolveToken(request);
+            if (StringUtils.isNotBlank(token) && tokenProvider.validateToken(token)) {
+                Authentication authentication = tokenProvider.getAuthentication(token);
+                if (authentication != null) {
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
+        } catch (InvalidJwtAuthenticationException ex) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            return;
         }
         filterChain.doFilter(request, response);
     }
