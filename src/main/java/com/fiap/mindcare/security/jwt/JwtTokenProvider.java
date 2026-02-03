@@ -108,7 +108,7 @@ public class JwtTokenProvider {
         return createAccessToken(username, roles);
     }
 
-    // 3 Autenticar a partir do token
+    // 3 Cria um Authentication para o SecurityContext a partir do JWT
     public Authentication getAuthentication(String token) {
         DecodedJWT decoded = decodedToken(token);
         UserDetails userDetails = userDetailsService.loadUserByUsername(decoded.getSubject());

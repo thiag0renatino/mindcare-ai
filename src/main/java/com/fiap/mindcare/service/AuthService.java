@@ -47,7 +47,7 @@ public class AuthService {
         }
 
         if (usuarioRepository.existsByEmail(credential.getEmail())) {
-            throw new BusinessException("Já existe um usuário com este e-mail");
+            throw new BusinessException("Credenciais inválidas");
         }
 
         passwordPolicyValidator.validate(credential.getSenha());

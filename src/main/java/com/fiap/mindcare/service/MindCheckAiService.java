@@ -20,9 +20,8 @@ import com.fiap.mindcare.model.Triagem;
 import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
-import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.service.exception.MindCheckAiException;
-import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -36,23 +35,23 @@ public class MindCheckAiService {
 
     private final ChatClient chatClient;
     private final ObjectMapper objectMapper;
-    private final UsuarioSistemaRepository usuarioRepository;
     private final TriagemRepository triagemRepository;
     private final EncaminhamentoRepository encaminhamentoRepository;
     private final TriagemMapper triagemMapper;
     private final EncaminhamentoMapper encaminhamentoMapper;
     private final EnumMapper enumMapper;
     private final MindCheckAiEventPublisher eventPublisher;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
     public MindCheckAiService(ChatClient.Builder chatClientBuilder,
                               ObjectMapper objectMapper,
-                              UsuarioSistemaRepository usuarioRepository,
                               TriagemRepository triagemRepository,
                               EncaminhamentoRepository encaminhamentoRepository,
                               TriagemMapper triagemMapper,
                               EncaminhamentoMapper encaminhamentoMapper,
                               EnumMapper enumMapper,
-                              ObjectProvider<MindCheckAiEventPublisher> eventPublisherProvider) {
+                              ObjectProvider<MindCheckAiEventPublisher> eventPublisherProvider,
+                              UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
         this.chatClient = chatClientBuilder
                 .defaultSystem("""
                         Você é a MindCheck AI, um assistente de triagem corporativa.
@@ -69,19 +68,18 @@ public class MindCheckAiService {
                         """)
                 .build();
         this.objectMapper = objectMapper;
-        this.usuarioRepository = usuarioRepository;
         this.triagemRepository = triagemRepository;
         this.encaminhamentoRepository = encaminhamentoRepository;
         this.triagemMapper = triagemMapper;
         this.encaminhamentoMapper = encaminhamentoMapper;
         this.enumMapper = enumMapper;
         this.eventPublisher = eventPublisherProvider.getIfAvailable();
+        this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
     }
 
     @Transactional
     public MindCheckAiResponseDTO analisar(MindCheckAiRequestDTO request) {
-        UsuarioSistema usuario = usuarioRepository.findById(request.getUsuarioId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado para triagem AI."));
+        UsuarioSistema usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
         MindCheckAiResponseDTO aiPayload = callAi(request);
         Triagem triagem = salvarTriagem(usuario, request, aiPayload);

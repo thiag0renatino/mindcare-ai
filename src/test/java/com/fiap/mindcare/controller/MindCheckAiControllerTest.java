@@ -44,7 +44,6 @@ class MindCheckAiControllerTest {
     @Test
     void analisar_shouldReturnOkWhenValid() throws Exception {
         MindCheckAiRequestDTO dto = new MindCheckAiRequestDTO();
-        dto.setUsuarioId(1L);
         dto.setRelato("Relato com tamanho suficiente");
         dto.setSintomas("cansaco");
         dto.setHumor("baixo");
@@ -63,7 +62,6 @@ class MindCheckAiControllerTest {
     @Test
     void analisar_shouldReturnBadRequestWhenRelatoTooShort() throws Exception {
         MindCheckAiRequestDTO dto = new MindCheckAiRequestDTO();
-        dto.setUsuarioId(1L);
         dto.setRelato("curto");
 
         mockMvc.perform(post("/api/mindcheck-ai/analises")

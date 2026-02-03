@@ -1,10 +1,7 @@
 package com.fiap.mindcare.exception.handler;
 
 import com.fiap.mindcare.exception.ExceptionResponse;
-import com.fiap.mindcare.service.exception.BusinessException;
-import com.fiap.mindcare.service.exception.InvalidJwtAuthenticationException;
-import com.fiap.mindcare.service.exception.MindCheckAiException;
-import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.exception.*;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.http.HttpStatus;
@@ -75,6 +72,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 request.getDescription(false)
         );
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public final ResponseEntity<ExceptionResponse> handleAccessDeniedException(
+            Exception ex, WebRequest request) {
+
+        ExceptionResponse response = new ExceptionResponse(
+                new Date(),
+                getMessage("error.denied", ex.getMessage()),
+                request.getDescription(false)
+        );
+        return new ResponseEntity<>(response, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(InvalidJwtAuthenticationException.class)

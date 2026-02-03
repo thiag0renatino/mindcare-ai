@@ -19,9 +19,9 @@ import com.fiap.mindcare.model.Triagem;
 import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
-import com.fiap.mindcare.repository.UsuarioSistemaRepository;
+import com.fiap.mindcare.service.exception.AccessDeniedException;
 import com.fiap.mindcare.service.exception.MindCheckAiException;
-import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,7 +33,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -56,9 +55,6 @@ class MindCheckAiServiceTest {
     private ChatClient chatClient;
 
     @Mock
-    private UsuarioSistemaRepository usuarioRepository;
-
-    @Mock
     private TriagemRepository triagemRepository;
 
     @Mock
@@ -79,6 +75,9 @@ class MindCheckAiServiceTest {
     @Mock
     private MindCheckAiEventPublisher eventPublisher;
 
+    @Mock
+    private UsuarioAutenticadoProvider usuarioAutenticadoProvider;
+
     private MindCheckAiService service;
 
     @BeforeEach
@@ -91,22 +90,23 @@ class MindCheckAiServiceTest {
         service = new MindCheckAiService(
                 chatClientBuilder,
                 objectMapper,
-                usuarioRepository,
                 triagemRepository,
                 encaminhamentoRepository,
                 triagemMapper,
                 encaminhamentoMapper,
                 enumMapper,
-                eventPublisherProvider
+                eventPublisherProvider,
+                usuarioAutenticadoProvider
         );
     }
 
     @Test
-    void analisar_shouldThrowWhenUserMissing() {
+    void analisar_shouldThrowWhenUserNotAuthenticated() {
         MindCheckAiRequestDTO request = buildRequest();
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.empty());
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado())
+                .thenThrow(new AccessDeniedException("Usuário não autenticado"));
 
-        assertThrows(ResourceNotFoundException.class, () -> service.analisar(request));
+        assertThrows(AccessDeniedException.class, () -> service.analisar(request));
 
         verifyNoInteractions(triagemRepository);
         verifyNoInteractions(encaminhamentoRepository);
@@ -118,7 +118,7 @@ class MindCheckAiServiceTest {
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setId(1L);
 
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(chatClient.prompt().user(anyString()).call().content())
                 .thenReturn(jsonResponse("BAIXO", List.of("Beba agua"), List.of(), "Tudo ok"));
         when(enumMapper.toRiscoTriagem("BAIXO")).thenReturn(RiscoTriagem.BAIXO);
@@ -148,7 +148,7 @@ class MindCheckAiServiceTest {
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setId(1L);
 
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(chatClient.prompt().user(anyString()).call().content())
                 .thenReturn(jsonResponse("MODERADO", List.of("Respiração"), List.of("Psicologia"), "Busque apoio"));
         when(enumMapper.toRiscoTriagem("MODERADO")).thenReturn(RiscoTriagem.MODERADO);
@@ -187,7 +187,7 @@ class MindCheckAiServiceTest {
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setId(1L);
 
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(chatClient.prompt().user(anyString()).call().content())
                 .thenReturn(jsonResponse("MODERADO", List.of(), List.of(), " "));
         when(enumMapper.toRiscoTriagem("MODERADO")).thenReturn(RiscoTriagem.MODERADO);
@@ -211,7 +211,7 @@ class MindCheckAiServiceTest {
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setId(1L);
 
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(chatClient.prompt().user(anyString()).call().content()).thenReturn("not-json");
 
         assertThrows(MindCheckAiException.class, () -> service.analisar(request));
@@ -225,7 +225,7 @@ class MindCheckAiServiceTest {
         UsuarioSistema usuario = new UsuarioSistema();
         usuario.setId(1L);
 
-        when(usuarioRepository.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(chatClient.prompt().user(anyString()).call().content())
                 .thenReturn(jsonResponse("X", List.of("a"), List.of("b"), "c"));
         when(enumMapper.toRiscoTriagem("X")).thenReturn(null);
@@ -237,7 +237,6 @@ class MindCheckAiServiceTest {
 
     private MindCheckAiRequestDTO buildRequest() {
         MindCheckAiRequestDTO request = new MindCheckAiRequestDTO();
-        request.setUsuarioId(1L);
         request.setRelato("Relato de teste com mais de dez caracteres");
         request.setSintomas("cansaco");
         request.setHumor("baixo");
