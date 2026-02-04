@@ -70,8 +70,8 @@ public class TriagemController {
     }
 
     @Operation(
-            summary = "Listar triagens por usuário",
-            description = "Filtra triagens associadas a um usuário determinado, mantendo paginação."
+            summary = "Listar triagens do usuário",
+            description = "Filtra triagens associadas a um usuário determinado, mantendo paginação. Requer ser o próprio usuário ou ADMIN."
     )
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<Page<TriagemResponseDTO>> listarPorUsuario(@PathVariable Long usuarioId,

@@ -51,7 +51,7 @@ class TriagemControllerTest {
 
     @Test
     void criar_shouldReturnCreatedWhenValid() throws Exception {
-        TriagemRequestDTO dto = new TriagemRequestDTO(10L, LocalDateTime.now(), "Relato valido", "ALTO", "Sugestao");
+        TriagemRequestDTO dto = new TriagemRequestDTO(LocalDateTime.now(), "Relato valido", "ALTO", "Sugestao");
         TriagemResponseDTO response = new TriagemResponseDTO();
         response.setId(1L);
 
@@ -68,7 +68,7 @@ class TriagemControllerTest {
 
     @Test
     void criar_shouldReturnBadRequestWhenRelatoTooShort() throws Exception {
-        TriagemRequestDTO dto = new TriagemRequestDTO(10L, LocalDateTime.now(), "1234", "ALTO", "Sugestao");
+        TriagemRequestDTO dto = new TriagemRequestDTO(LocalDateTime.now(), "1234", "ALTO", "Sugestao");
 
         mockMvc.perform(post("/api/triagens")
                         .contentType("application/json")
@@ -90,7 +90,7 @@ class TriagemControllerTest {
 
     @Test
     void atualizar_shouldReturnOkWhenValid() throws Exception {
-        TriagemRequestDTO dto = new TriagemRequestDTO(10L, LocalDateTime.now(), "Relato valido", "MODERADO", "Sugestao");
+        TriagemRequestDTO dto = new TriagemRequestDTO(LocalDateTime.now(), "Relato valido", "MODERADO", "Sugestao");
         TriagemResponseDTO response = new TriagemResponseDTO();
         response.setId(1L);
 

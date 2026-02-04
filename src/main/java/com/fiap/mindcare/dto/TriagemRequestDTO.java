@@ -1,6 +1,5 @@
 package com.fiap.mindcare.dto;
 
-import com.fiap.mindcare.enuns.RiscoTriagem;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -8,9 +7,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 public class TriagemRequestDTO {
-
-    @NotNull
-    private Long usuarioId;
 
     @NotNull
     private LocalDateTime dataHora;
@@ -28,20 +24,11 @@ public class TriagemRequestDTO {
     public TriagemRequestDTO() {
     }
 
-    public TriagemRequestDTO(Long usuarioId, LocalDateTime dataHora, String relato, String risco, String sugestao) {
-        this.usuarioId = usuarioId;
+    public TriagemRequestDTO(LocalDateTime dataHora, String relato, String risco, String sugestao) {
         this.dataHora = dataHora;
         this.relato = relato;
         this.risco = risco;
         this.sugestao = sugestao;
-    }
-
-    public Long getUsuarioId() {
-        return usuarioId;
-    }
-
-    public void setUsuarioId(Long usuarioId) {
-        this.usuarioId = usuarioId;
     }
 
     public String getRelato() {

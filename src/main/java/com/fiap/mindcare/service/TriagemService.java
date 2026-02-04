@@ -3,13 +3,16 @@ package com.fiap.mindcare.service;
 import com.fiap.mindcare.controller.TriagemController;
 import com.fiap.mindcare.dto.TriagemRequestDTO;
 import com.fiap.mindcare.dto.TriagemResponseDTO;
+import com.fiap.mindcare.enuns.TipoUsuario;
 import com.fiap.mindcare.mapper.EnumMapper;
 import com.fiap.mindcare.mapper.TriagemMapper;
 import com.fiap.mindcare.model.Triagem;
 import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.TriagemRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
+import com.fiap.mindcare.service.exception.AccessDeniedException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,21 +30,21 @@ public class TriagemService {
     private final UsuarioSistemaRepository usuarioRepository;
     private final TriagemMapper triagemMapper;
     private final EnumMapper enumMapper;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
-    public TriagemService(TriagemRepository triagemRepository, UsuarioSistemaRepository usuarioRepository, TriagemMapper triagemMapper, EnumMapper enumMapper) {
+    public TriagemService(TriagemRepository triagemRepository, UsuarioSistemaRepository usuarioRepository, TriagemMapper triagemMapper, EnumMapper enumMapper, UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
         this.triagemRepository = triagemRepository;
         this.usuarioRepository = usuarioRepository;
         this.triagemMapper = triagemMapper;
         this.enumMapper = enumMapper;
+        this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
     }
 
     @Transactional
     public TriagemResponseDTO criar(TriagemRequestDTO dto) {
+        UsuarioSistema usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Triagem entity = triagemMapper.toEntity(dto);
-
-        UsuarioSistema usuario = usuarioRepository.findById(dto.getUsuarioId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
         entity.setUsuario(usuario);
         entity.setRisco(enumMapper.toRiscoTriagem(dto.getRisco()));
 
@@ -71,6 +74,12 @@ public class TriagemService {
     }
 
     public Page<TriagemResponseDTO> listarPorUsuario(Long usuarioId, Pageable pageable) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        if (!autenticado.getId().equals(usuarioId) && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado: você não pode visualizar triagens de outro usuário");
+        }
+
         return triagemRepository.findByUsuarioIdOrderByDataHoraDesc(usuarioId, pageable)
                 .map(entity -> {
                     TriagemResponseDTO dto = triagemMapper.toResponse(entity);
@@ -81,13 +90,15 @@ public class TriagemService {
 
     @Transactional
     public TriagemResponseDTO atualizar(Long id, TriagemRequestDTO dto) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Triagem entity = triagemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
 
-        UsuarioSistema usuario = usuarioRepository.findById(dto.getUsuarioId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        if (!entity.getUsuario().getId().equals(autenticado.getId()) && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado: você não pode atualizar triagens de outro usuário");
+        }
 
-        entity.setUsuario(usuario);
         entity.setDataHora(dto.getDataHora());
         entity.setRelato(dto.getRelato());
         entity.setRisco(enumMapper.toRiscoTriagem(dto.getRisco()));
@@ -102,8 +113,14 @@ public class TriagemService {
 
     @Transactional
     public void excluir(Long id) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Triagem entity = triagemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
+
+        if (!entity.getUsuario().getId().equals(autenticado.getId()) && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado: você não pode excluir triagens de outro usuário");
+        }
 
         triagemRepository.delete(entity);
     }
