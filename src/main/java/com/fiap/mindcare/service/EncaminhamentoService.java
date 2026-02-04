@@ -4,17 +4,21 @@ import com.fiap.mindcare.controller.EncaminhamentoController;
 import com.fiap.mindcare.dto.EncaminhamentoRecomendadoDTO;
 import com.fiap.mindcare.dto.EncaminhamentoRequestDTO;
 import com.fiap.mindcare.dto.EncaminhamentoResponseDTO;
+import com.fiap.mindcare.enuns.TipoUsuario;
 import com.fiap.mindcare.mapper.EncaminhamentoMapper;
 import com.fiap.mindcare.mapper.EnumMapper;
 import com.fiap.mindcare.model.Empresa;
 import com.fiap.mindcare.model.Encaminhamento;
 import com.fiap.mindcare.model.Profissional;
 import com.fiap.mindcare.model.Triagem;
+import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.ProfissionalRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
+import com.fiap.mindcare.service.exception.AccessDeniedException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -34,14 +38,16 @@ public class EncaminhamentoService {
     private final ProfissionalRepository profissionalRepository;
     private final EncaminhamentoMapper encaminhamentoMapper;
     private final EnumMapper enumMapper;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
-    public EncaminhamentoService(EncaminhamentoRepository encaminhamentoRepository, TriagemRepository triagemRepository, EmpresaRepository empresaRepository, ProfissionalRepository profissionalRepository, EncaminhamentoMapper encaminhamentoMapper, EnumMapper enumMapper) {
+    public EncaminhamentoService(EncaminhamentoRepository encaminhamentoRepository, TriagemRepository triagemRepository, EmpresaRepository empresaRepository, ProfissionalRepository profissionalRepository, EncaminhamentoMapper encaminhamentoMapper, EnumMapper enumMapper, UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
         this.encaminhamentoRepository = encaminhamentoRepository;
         this.triagemRepository = triagemRepository;
         this.empresaRepository = empresaRepository;
         this.profissionalRepository = profissionalRepository;
         this.encaminhamentoMapper = encaminhamentoMapper;
         this.enumMapper = enumMapper;
+        this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
     }
 
     @Transactional
@@ -97,6 +103,15 @@ public class EncaminhamentoService {
     }
 
     public Page<EncaminhamentoResponseDTO> listarPorTriagem(Long triagemId, Pageable pageable) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        Triagem triagem = triagemRepository.findById(triagemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
+
+        if (!autenticado.getId().equals(triagem.getUsuario().getId()) && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         return encaminhamentoRepository.findByTriagemId(triagemId, pageable)
                 .map(entity -> {
                     EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);

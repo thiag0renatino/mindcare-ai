@@ -56,8 +56,15 @@ public class TriagemService {
     }
 
     public TriagemResponseDTO buscarPorId(Long id) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Triagem entity = triagemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
+
+        if (!autenticado.getId().equals(entity.getUsuario().getId()) && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+
+        }
 
         TriagemResponseDTO dto = triagemMapper.toResponse(entity);
         addHateoasLinks(dto);
@@ -77,7 +84,7 @@ public class TriagemService {
         UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
         if (!autenticado.getId().equals(usuarioId) && autenticado.getTipo() != TipoUsuario.ADMIN) {
-            throw new AccessDeniedException("Acesso negado: você não pode visualizar triagens de outro usuário");
+            throw new AccessDeniedException("Acesso negado");
         }
 
         return triagemRepository.findByUsuarioIdOrderByDataHoraDesc(usuarioId, pageable)
@@ -96,7 +103,7 @@ public class TriagemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
 
         if (!entity.getUsuario().getId().equals(autenticado.getId()) && autenticado.getTipo() != TipoUsuario.ADMIN) {
-            throw new AccessDeniedException("Acesso negado: você não pode atualizar triagens de outro usuário");
+            throw new AccessDeniedException("Acesso negado");
         }
 
         entity.setDataHora(dto.getDataHora());
@@ -119,7 +126,7 @@ public class TriagemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
 
         if (!entity.getUsuario().getId().equals(autenticado.getId()) && autenticado.getTipo() != TipoUsuario.ADMIN) {
-            throw new AccessDeniedException("Acesso negado: você não pode excluir triagens de outro usuário");
+            throw new AccessDeniedException("Acesso negado");
         }
 
         triagemRepository.delete(entity);
