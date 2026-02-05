@@ -36,7 +36,7 @@ public class AcompanhamentoController {
             description = "Cria um novo evento vinculado a um encaminhamento existente. Campos com valores fixos: tipoEvento (AGENDAMENTO, RESULTADO, ALTA, CANCELAMENTO, OBSERVACAO)."
     )
     @PostMapping
-    public ResponseEntity<AcompanhamentoResponseDTO> criar(@Valid @RequestBody AcompanhamentoRequestDTO dto) {
+    public ResponseEntity<AcompanhamentoResponseDTO> criar(@RequestBody @Valid AcompanhamentoRequestDTO dto) {
         AcompanhamentoResponseDTO response = acompanhamentoService.criar(dto);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()

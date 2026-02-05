@@ -31,7 +31,7 @@ public class MindCheckAiController {
             description = "Utiliza Spring AI com Azure OpenAI para definir risco, guardar a triagem e gerar encaminhamentos automáticos quando necessário."
     )
     @PostMapping("/analises")
-    public ResponseEntity<MindCheckAiResponseDTO> analisar(@Valid @RequestBody MindCheckAiRequestDTO request) {
+    public ResponseEntity<MindCheckAiResponseDTO> analisar(@RequestBody @Valid MindCheckAiRequestDTO request) {
         MindCheckAiResponseDTO response = mindCheckAiService.analisar(request);
         return ResponseEntity.ok(response);
     }

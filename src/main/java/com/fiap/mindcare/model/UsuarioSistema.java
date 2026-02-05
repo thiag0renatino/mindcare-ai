@@ -2,6 +2,7 @@ package com.fiap.mindcare.model;
 
 import com.fiap.mindcare.enuns.TipoUsuario;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,6 +29,7 @@ public class UsuarioSistema implements UserDetails {
     private String nome;
 
     @NotBlank
+    @Email(regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
     @Column(length = 150, unique = true, nullable = false)
     private String email;
 

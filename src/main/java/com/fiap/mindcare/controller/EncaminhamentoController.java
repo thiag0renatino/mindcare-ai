@@ -37,7 +37,7 @@ public class EncaminhamentoController {
             description = "Registra um encaminhamento para uma triagem. Campos com valores fixos: tipo (EXAME, ESPECIALIDADE, PROFISSIONAL, HABITO), prioridade (BAIXA, MEDIA, ALTA), status (PENDENTE, AGENDADO, CONCLUIDO, CANCELADO)."
     )
     @PostMapping
-    public ResponseEntity<EncaminhamentoResponseDTO> criar(@Valid @RequestBody EncaminhamentoRequestDTO dto) {
+    public ResponseEntity<EncaminhamentoResponseDTO> criar(@RequestBody @Valid EncaminhamentoRequestDTO dto) {
         EncaminhamentoResponseDTO response = encaminhamentoService.criar(dto);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()

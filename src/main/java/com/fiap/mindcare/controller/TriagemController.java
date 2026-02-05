@@ -36,7 +36,7 @@ public class TriagemController {
             description = "Cria uma nova triagem para um usuário. Campos com valores fixos: risco (BAIXO, MODERADO, ALTO)."
     )
     @PostMapping
-    public ResponseEntity<TriagemResponseDTO> criar(@Valid @RequestBody TriagemRequestDTO dto) {
+    public ResponseEntity<TriagemResponseDTO> criar(@RequestBody @Valid TriagemRequestDTO dto) {
         TriagemResponseDTO response = triagemService.criar(dto);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()

@@ -36,7 +36,7 @@ public class EmpresaController {
             description = "Cadastra uma nova empresa com CNPJ, nome e plano de saúde vinculado."
     )
     @PostMapping
-    public ResponseEntity<EmpresaResponseDTO> criar(@Valid @RequestBody EmpresaRequestDTO dto) {
+    public ResponseEntity<EmpresaResponseDTO> criar(@RequestBody @Valid EmpresaRequestDTO dto) {
         EmpresaResponseDTO response = empresaService.criar(dto);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()

@@ -112,11 +112,16 @@ class TriagemServiceTest {
 
     @Test
     void buscarPorId_shouldReturnResponse() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+
         Triagem entity = new Triagem();
         entity.setId(1L);
+        entity.setUsuario(usuario);
+
         TriagemResponseDTO response = new TriagemResponseDTO();
         response.setId(1L);
 
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(triagemRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(triagemMapper.toResponse(entity)).thenReturn(response);
 

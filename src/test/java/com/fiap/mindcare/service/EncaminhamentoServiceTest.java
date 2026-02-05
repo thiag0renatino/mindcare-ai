@@ -12,6 +12,9 @@ import com.fiap.mindcare.model.Empresa;
 import com.fiap.mindcare.model.Encaminhamento;
 import com.fiap.mindcare.model.Profissional;
 import com.fiap.mindcare.model.Triagem;
+import com.fiap.mindcare.model.UsuarioSistema;
+import com.fiap.mindcare.enuns.TipoUsuario;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.ProfissionalRepository;
@@ -63,6 +66,9 @@ class EncaminhamentoServiceTest {
 
     @Mock
     private EnumMapper enumMapper;
+
+    @Mock
+    private UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
     @InjectMocks
     private EncaminhamentoService encaminhamentoService;
@@ -196,6 +202,14 @@ class EncaminhamentoServiceTest {
 
     @Test
     void listarPorTriagem_shouldMapPage() {
+        UsuarioSistema usuario = new UsuarioSistema();
+        usuario.setId(10L);
+        usuario.setTipo(TipoUsuario.USER);
+
+        Triagem triagem = new Triagem();
+        triagem.setId(10L);
+        triagem.setUsuario(usuario);
+
         Encaminhamento e1 = new Encaminhamento();
         e1.setId(1L);
         Page<Encaminhamento> page = new PageImpl<>(List.of(e1), PageRequest.of(0, 20), 1);
@@ -203,6 +217,8 @@ class EncaminhamentoServiceTest {
         EncaminhamentoResponseDTO r1 = new EncaminhamentoResponseDTO();
         r1.setId(1L);
 
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+        when(triagemRepository.findById(10L)).thenReturn(Optional.of(triagem));
         when(encaminhamentoRepository.findByTriagemId(any(Long.class), any(Pageable.class))).thenReturn(page);
         when(encaminhamentoMapper.toResponse(e1)).thenReturn(r1);
 

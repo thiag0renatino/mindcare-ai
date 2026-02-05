@@ -12,7 +12,7 @@ public class UsuarioRequestDTO {
     private String nome;
 
     @NotBlank
-    @Email
+    @Email(message = "Email deve ser válido", regexp = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")
     @Size(max = 150)
     private String email;
 
