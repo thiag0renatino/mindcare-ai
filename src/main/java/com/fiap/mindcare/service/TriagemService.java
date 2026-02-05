@@ -72,12 +72,20 @@ public class TriagemService {
     }
 
     public Page<TriagemResponseDTO> listar(Pageable pageable) {
-        return triagemRepository.findAll(pageable)
-                .map(entity -> {
-                    TriagemResponseDTO dto = triagemMapper.toResponse(entity);
-                    addHateoasLinks(dto);
-                    return dto;
-                });
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        Page<Triagem> page;
+        if (autenticado.getTipo() == TipoUsuario.ADMIN) {
+            page = triagemRepository.findAll(pageable);
+        } else {
+            page = triagemRepository.findByUsuarioIdOrderByDataHoraDesc(autenticado.getId(), pageable);
+        }
+
+        return page.map(entity -> {
+            TriagemResponseDTO dto = triagemMapper.toResponse(entity);
+            addHateoasLinks(dto);
+            return dto;
+        });
     }
 
     public Page<TriagemResponseDTO> listarPorUsuario(Long usuarioId, Pageable pageable) {

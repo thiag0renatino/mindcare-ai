@@ -73,6 +73,28 @@ class EncaminhamentoServiceTest {
     @InjectMocks
     private EncaminhamentoService encaminhamentoService;
 
+    private UsuarioSistema criarUsuario(Long id, TipoUsuario tipo) {
+        UsuarioSistema usuario = new UsuarioSistema();
+        usuario.setId(id);
+        usuario.setTipo(tipo);
+        return usuario;
+    }
+
+    private Triagem criarTriagemComUsuario(Long id, UsuarioSistema usuario) {
+        Triagem triagem = new Triagem();
+        triagem.setId(id);
+        triagem.setUsuario(usuario);
+        return triagem;
+    }
+
+    private Encaminhamento criarEncaminhamentoComUsuario(Long id, UsuarioSistema usuario) {
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+        Encaminhamento encaminhamento = new Encaminhamento();
+        encaminhamento.setId(id);
+        encaminhamento.setTriagem(triagem);
+        return encaminhamento;
+    }
+
     @BeforeEach
     void setUpRequestContext() {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
@@ -85,8 +107,10 @@ class EncaminhamentoServiceTest {
 
     @Test
     void criar_shouldThrowWhenTriagemMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, null, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
-        when(encaminhamentoMapper.toEntity(dto)).thenReturn(new Encaminhamento());
         when(triagemRepository.findById(10L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> encaminhamentoService.criar(dto));
@@ -94,9 +118,14 @@ class EncaminhamentoServiceTest {
 
     @Test
     void criar_shouldThrowWhenProfissionalMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, 20L, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
         when(encaminhamentoMapper.toEntity(dto)).thenReturn(new Encaminhamento());
-        when(triagemRepository.findById(10L)).thenReturn(Optional.of(new Triagem()));
+        when(triagemRepository.findById(10L)).thenReturn(Optional.of(triagem));
         when(profissionalRepository.findById(20L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> encaminhamentoService.criar(dto));
@@ -104,10 +133,13 @@ class EncaminhamentoServiceTest {
 
     @Test
     void criar_shouldPersistAndReturnResponse() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, 20L, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
 
-        Triagem triagem = new Triagem();
-        triagem.setId(10L);
         Profissional profissional = new Profissional();
         profissional.setId(20L);
 
@@ -142,9 +174,14 @@ class EncaminhamentoServiceTest {
 
     @Test
     void criar_shouldNotLookupProfissionalWhenNull() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, null, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
         when(encaminhamentoMapper.toEntity(dto)).thenReturn(new Encaminhamento());
-        when(triagemRepository.findById(10L)).thenReturn(Optional.of(new Triagem()));
+        when(triagemRepository.findById(10L)).thenReturn(Optional.of(triagem));
         when(enumMapper.toTipoEncaminhamento("ESPECIALIDADE")).thenReturn(TipoEncaminhamento.ESPECIALIDADE);
         when(encaminhamentoRepository.save(any(Encaminhamento.class))).thenReturn(new Encaminhamento());
         when(encaminhamentoMapper.toResponse(any(Encaminhamento.class))).thenReturn(new EncaminhamentoResponseDTO());
@@ -156,17 +193,22 @@ class EncaminhamentoServiceTest {
 
     @Test
     void buscarPorId_shouldThrowWhenMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.empty());
+
         assertThrows(ResourceNotFoundException.class, () -> encaminhamentoService.buscarPorId(1L));
     }
 
     @Test
     void buscarPorId_shouldReturnResponse() {
-        Encaminhamento entity = new Encaminhamento();
-        entity.setId(1L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento entity = criarEncaminhamentoComUsuario(1L, usuario);
+
         EncaminhamentoResponseDTO response = new EncaminhamentoResponseDTO();
         response.setId(1L);
 
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(encaminhamentoMapper.toResponse(entity)).thenReturn(response);
 
@@ -177,7 +219,10 @@ class EncaminhamentoServiceTest {
     }
 
     @Test
-    void listar_shouldMapPage() {
+    void listar_shouldMapPageForAdmin() {
+        UsuarioSistema admin = criarUsuario(99L, TipoUsuario.ADMIN);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(admin);
+
         Encaminhamento e1 = new Encaminhamento();
         e1.setId(1L);
         Encaminhamento e2 = new Encaminhamento();
@@ -198,6 +243,27 @@ class EncaminhamentoServiceTest {
         assertEquals(2, result.getContent().size());
         verify(encaminhamentoMapper).toResponse(e1);
         verify(encaminhamentoMapper).toResponse(e2);
+    }
+
+    @Test
+    void listar_shouldFilterByUserForNonAdmin() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
+        Encaminhamento e1 = new Encaminhamento();
+        e1.setId(1L);
+        Page<Encaminhamento> page = new PageImpl<>(List.of(e1), PageRequest.of(0, 20), 1);
+
+        EncaminhamentoResponseDTO r1 = new EncaminhamentoResponseDTO();
+        r1.setId(1L);
+
+        when(encaminhamentoRepository.findByTriagemUsuarioId(any(Long.class), any(Pageable.class))).thenReturn(page);
+        when(encaminhamentoMapper.toResponse(e1)).thenReturn(r1);
+
+        Page<EncaminhamentoResponseDTO> result = encaminhamentoService.listar(PageRequest.of(0, 20));
+
+        assertEquals(1, result.getContent().size());
+        verify(encaminhamentoRepository).findByTriagemUsuarioId(10L, PageRequest.of(0, 20));
     }
 
     @Test
@@ -230,6 +296,9 @@ class EncaminhamentoServiceTest {
 
     @Test
     void atualizar_shouldThrowWhenMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, null, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -238,18 +307,29 @@ class EncaminhamentoServiceTest {
 
     @Test
     void atualizar_shouldThrowWhenTriagemMissing() {
-        EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, null, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
-        when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(new Encaminhamento()));
-        when(triagemRepository.findById(10L)).thenReturn(Optional.empty());
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento entity = criarEncaminhamentoComUsuario(1L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
+        EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 99L, null, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
+        when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(triagemRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> encaminhamentoService.atualizar(1L, dto));
     }
 
     @Test
     void atualizar_shouldThrowWhenProfissionalMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento entity = criarEncaminhamentoComUsuario(1L, usuario);
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, 20L, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
-        when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(new Encaminhamento()));
-        when(triagemRepository.findById(10L)).thenReturn(Optional.of(new Triagem()));
+        when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(triagemRepository.findById(10L)).thenReturn(Optional.of(triagem));
         when(profissionalRepository.findById(20L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> encaminhamentoService.atualizar(1L, dto));
@@ -257,14 +337,17 @@ class EncaminhamentoServiceTest {
 
     @Test
     void atualizar_shouldSetProfissionalNullWhenMissingInDto() {
-        Encaminhamento entity = new Encaminhamento();
-        entity.setId(1L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento entity = criarEncaminhamentoComUsuario(1L, usuario);
         entity.setProfissional(new Profissional());
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
 
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, null, "obs", "Psicologia", "MEDIA", "PENDENTE", null);
 
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
-        when(triagemRepository.findById(10L)).thenReturn(Optional.of(new Triagem()));
+        when(triagemRepository.findById(10L)).thenReturn(Optional.of(triagem));
         when(enumMapper.toTipoEncaminhamento("ESPECIALIDADE")).thenReturn(TipoEncaminhamento.ESPECIALIDADE);
         when(enumMapper.toPrioridadeEncaminhamento("MEDIA")).thenReturn(PrioridadeEncaminhamento.MEDIA);
         when(enumMapper.toStatusEncaminhamento("PENDENTE")).thenReturn(StatusEncaminhamento.PENDENTE);
@@ -280,12 +363,14 @@ class EncaminhamentoServiceTest {
 
     @Test
     void atualizar_shouldPersistChanges() {
-        Encaminhamento entity = new Encaminhamento();
-        entity.setId(1L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento entity = criarEncaminhamentoComUsuario(1L, usuario);
+        Triagem triagem = criarTriagemComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
 
         EncaminhamentoRequestDTO dto = new EncaminhamentoRequestDTO("ESPECIALIDADE", 10L, 20L, "obs", "Psicologia", "MEDIA", "PENDENTE", "Exame X");
 
-        Triagem triagem = new Triagem();
         Profissional profissional = new Profissional();
 
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
@@ -341,14 +426,19 @@ class EncaminhamentoServiceTest {
 
     @Test
     void excluir_shouldThrowWhenMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.empty());
+
         assertThrows(ResourceNotFoundException.class, () -> encaminhamentoService.excluir(1L));
     }
 
     @Test
     void excluir_shouldDeleteWhenFound() {
-        Encaminhamento entity = new Encaminhamento();
-        entity.setId(1L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento entity = criarEncaminhamentoComUsuario(1L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(encaminhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         encaminhamentoService.excluir(1L);

@@ -19,4 +19,6 @@ public interface EncaminhamentoRepository extends JpaRepository<Encaminhamento, 
     Page<Encaminhamento> findByPrioridade(PrioridadeEncaminhamento prioridade, Pageable pageable);
 
     Page<Encaminhamento> findByTipo(TipoEncaminhamento tipo, Pageable pageable);
+
+    Page<Encaminhamento> findByTriagemUsuarioId(Long usuarioId, Pageable pageable);
 }

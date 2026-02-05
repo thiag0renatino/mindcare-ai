@@ -52,10 +52,17 @@ public class EncaminhamentoService {
 
     @Transactional
     public EncaminhamentoResponseDTO criar(EncaminhamentoRequestDTO dto) {
-        Encaminhamento entity = encaminhamentoMapper.toEntity(dto);
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
         Triagem triagem = triagemRepository.findById(dto.getTriagemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
+
+        if (!autenticado.getId().equals(triagem.getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
+        Encaminhamento entity = encaminhamentoMapper.toEntity(dto);
         entity.setTriagem(triagem);
 
         if (dto.getProfissionalId() != null) {
@@ -86,20 +93,36 @@ public class EncaminhamentoService {
     }
 
     public EncaminhamentoResponseDTO buscarPorId(Long id) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Encaminhamento entity = encaminhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
+
+        if (!autenticado.getId().equals(entity.getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);
         addHateoasLinks(dto);
         return dto;
     }
 
     public Page<EncaminhamentoResponseDTO> listar(Pageable pageable) {
-        return encaminhamentoRepository.findAll(pageable)
-                .map(entity -> {
-                    EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);
-                    addHateoasLinks(dto);
-                    return dto;
-                });
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        Page<Encaminhamento> page;
+        if (autenticado.getTipo() == TipoUsuario.ADMIN) {
+            page = encaminhamentoRepository.findAll(pageable);
+        } else {
+            page = encaminhamentoRepository.findByTriagemUsuarioId(autenticado.getId(), pageable);
+        }
+
+        return page.map(entity -> {
+            EncaminhamentoResponseDTO dto = encaminhamentoMapper.toResponse(entity);
+            addHateoasLinks(dto);
+            return dto;
+        });
     }
 
     public Page<EncaminhamentoResponseDTO> listarPorTriagem(Long triagemId, Pageable pageable) {
@@ -122,11 +145,24 @@ public class EncaminhamentoService {
 
     @Transactional
     public EncaminhamentoResponseDTO atualizar(Long id, EncaminhamentoRequestDTO dto) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Encaminhamento entity = encaminhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
 
+        if (!autenticado.getId().equals(entity.getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         Triagem triagem = triagemRepository.findById(dto.getTriagemId())
                 .orElseThrow(() -> new ResourceNotFoundException("Triagem não encontrada"));
+
+        if (!autenticado.getId().equals(triagem.getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         entity.setTriagem(triagem);
 
         if (dto.getProfissionalId() != null) {
@@ -160,8 +196,16 @@ public class EncaminhamentoService {
 
     @Transactional
     public void excluir(Long id) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Encaminhamento entity = encaminhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
+
+        if (!autenticado.getId().equals(entity.getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         encaminhamentoRepository.delete(entity);
     }
 

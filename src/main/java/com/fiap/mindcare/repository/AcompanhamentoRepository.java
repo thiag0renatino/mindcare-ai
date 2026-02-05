@@ -11,5 +11,7 @@ public interface AcompanhamentoRepository extends JpaRepository<Acompanhamento, 
     Page<Acompanhamento> findByEncaminhamentoIdOrderByDataEventoDesc(Long encaminhamentoId, Pageable pageable);
 
     Page<Acompanhamento> findByTipoEvento(TipoEventoAcompanhamento tipoEvento, Pageable pageable);
+
+    Page<Acompanhamento> findByEncaminhamentoTriagemUsuarioId(Long usuarioId, Pageable pageable);
 }
 

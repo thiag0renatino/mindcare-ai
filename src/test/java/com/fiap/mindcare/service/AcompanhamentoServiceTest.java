@@ -3,13 +3,17 @@ package com.fiap.mindcare.service;
 import com.fiap.mindcare.dto.AcompanhamentoRequestDTO;
 import com.fiap.mindcare.dto.AcompanhamentoResponseDTO;
 import com.fiap.mindcare.enuns.TipoEventoAcompanhamento;
+import com.fiap.mindcare.enuns.TipoUsuario;
 import com.fiap.mindcare.mapper.AcompanhamentoMapper;
 import com.fiap.mindcare.mapper.EnumMapper;
 import com.fiap.mindcare.model.Acompanhamento;
 import com.fiap.mindcare.model.Encaminhamento;
+import com.fiap.mindcare.model.Triagem;
+import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.AcompanhamentoRepository;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,8 +55,37 @@ class AcompanhamentoServiceTest {
     @Mock
     private EnumMapper enumMapper;
 
+    @Mock
+    private UsuarioAutenticadoProvider usuarioAutenticadoProvider;
+
     @InjectMocks
     private AcompanhamentoService acompanhamentoService;
+
+    private UsuarioSistema criarUsuario(Long id, TipoUsuario tipo) {
+        UsuarioSistema usuario = new UsuarioSistema();
+        usuario.setId(id);
+        usuario.setTipo(tipo);
+        return usuario;
+    }
+
+    private Encaminhamento criarEncaminhamentoComUsuario(Long id, UsuarioSistema usuario) {
+        Triagem triagem = new Triagem();
+        triagem.setId(1L);
+        triagem.setUsuario(usuario);
+
+        Encaminhamento encaminhamento = new Encaminhamento();
+        encaminhamento.setId(id);
+        encaminhamento.setTriagem(triagem);
+        return encaminhamento;
+    }
+
+    private Acompanhamento criarAcompanhamentoComUsuario(Long id, UsuarioSistema usuario) {
+        Encaminhamento encaminhamento = criarEncaminhamentoComUsuario(10L, usuario);
+        Acompanhamento acompanhamento = new Acompanhamento();
+        acompanhamento.setId(id);
+        acompanhamento.setEncaminhamento(encaminhamento);
+        return acompanhamento;
+    }
 
     @BeforeEach
     void setUpRequestContext() {
@@ -66,6 +99,9 @@ class AcompanhamentoServiceTest {
 
     @Test
     void criar_shouldThrowWhenEncaminhamentoMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         AcompanhamentoRequestDTO dto = new AcompanhamentoRequestDTO(10L, "url", "desc", "AGENDAMENTO", LocalDateTime.now());
         when(encaminhamentoRepository.findById(10L)).thenReturn(Optional.empty());
 
@@ -74,8 +110,10 @@ class AcompanhamentoServiceTest {
 
     @Test
     void criar_shouldPersistAndReturnResponse() {
-        Encaminhamento encaminhamento = new Encaminhamento();
-        encaminhamento.setId(10L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento encaminhamento = criarEncaminhamentoComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
 
         AcompanhamentoRequestDTO dto = new AcompanhamentoRequestDTO(10L, "url", "desc", "AGENDAMENTO", LocalDateTime.now());
         Acompanhamento entity = new Acompanhamento();
@@ -102,17 +140,22 @@ class AcompanhamentoServiceTest {
 
     @Test
     void buscarPorId_shouldThrowWhenMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.empty());
+
         assertThrows(ResourceNotFoundException.class, () -> acompanhamentoService.buscarPorId(1L));
     }
 
     @Test
     void buscarPorId_shouldReturnResponse() {
-        Acompanhamento entity = new Acompanhamento();
-        entity.setId(1L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Acompanhamento entity = criarAcompanhamentoComUsuario(1L, usuario);
+
         AcompanhamentoResponseDTO response = new AcompanhamentoResponseDTO();
         response.setId(1L);
 
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(acompanhamentoMapper.toResponse(entity)).thenReturn(response);
 
@@ -123,7 +166,10 @@ class AcompanhamentoServiceTest {
     }
 
     @Test
-    void listar_shouldMapPage() {
+    void listar_shouldMapPageForAdmin() {
+        UsuarioSistema admin = criarUsuario(99L, TipoUsuario.ADMIN);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(admin);
+
         Acompanhamento a1 = new Acompanhamento();
         a1.setId(1L);
         Acompanhamento a2 = new Acompanhamento();
@@ -147,7 +193,34 @@ class AcompanhamentoServiceTest {
     }
 
     @Test
+    void listar_shouldFilterByUserForNonAdmin() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
+        Acompanhamento a1 = new Acompanhamento();
+        a1.setId(1L);
+        Page<Acompanhamento> page = new PageImpl<>(List.of(a1), PageRequest.of(0, 20), 1);
+
+        AcompanhamentoResponseDTO r1 = new AcompanhamentoResponseDTO();
+        r1.setId(1L);
+
+        when(acompanhamentoRepository.findByEncaminhamentoTriagemUsuarioId(any(Long.class), any(Pageable.class))).thenReturn(page);
+        when(acompanhamentoMapper.toResponse(a1)).thenReturn(r1);
+
+        Page<AcompanhamentoResponseDTO> result = acompanhamentoService.listar(PageRequest.of(0, 20));
+
+        assertEquals(1, result.getContent().size());
+        verify(acompanhamentoRepository).findByEncaminhamentoTriagemUsuarioId(10L, PageRequest.of(0, 20));
+    }
+
+    @Test
     void listarPorEncaminhamento_shouldMapPage() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Encaminhamento encaminhamento = criarEncaminhamentoComUsuario(10L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+        when(encaminhamentoRepository.findById(10L)).thenReturn(Optional.of(encaminhamento));
+
         Acompanhamento a1 = new Acompanhamento();
         a1.setId(1L);
         Page<Acompanhamento> page = new PageImpl<>(List.of(a1), PageRequest.of(0, 20), 1);
@@ -166,6 +239,9 @@ class AcompanhamentoServiceTest {
 
     @Test
     void atualizar_shouldThrowWhenMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
         AcompanhamentoRequestDTO dto = new AcompanhamentoRequestDTO(10L, "url", "desc", "AGENDAMENTO", LocalDateTime.now());
         when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -174,20 +250,25 @@ class AcompanhamentoServiceTest {
 
     @Test
     void atualizar_shouldThrowWhenEncaminhamentoMissing() {
-        AcompanhamentoRequestDTO dto = new AcompanhamentoRequestDTO(10L, "url", "desc", "AGENDAMENTO", LocalDateTime.now());
-        when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.of(new Acompanhamento()));
-        when(encaminhamentoRepository.findById(10L)).thenReturn(Optional.empty());
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Acompanhamento entity = criarAcompanhamentoComUsuario(1L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
+        AcompanhamentoRequestDTO dto = new AcompanhamentoRequestDTO(99L, "url", "desc", "AGENDAMENTO", LocalDateTime.now());
+        when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(encaminhamentoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> acompanhamentoService.atualizar(1L, dto));
     }
 
     @Test
     void atualizar_shouldPersistChanges() {
-        Encaminhamento encaminhamento = new Encaminhamento();
-        encaminhamento.setId(10L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Acompanhamento entity = criarAcompanhamentoComUsuario(1L, usuario);
+        Encaminhamento encaminhamento = criarEncaminhamentoComUsuario(10L, usuario);
 
-        Acompanhamento entity = new Acompanhamento();
-        entity.setId(1L);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
 
         LocalDateTime dataEvento = LocalDateTime.now();
         AcompanhamentoRequestDTO dto = new AcompanhamentoRequestDTO(10L, "url", "desc", "RESULTADO", dataEvento);
@@ -212,14 +293,19 @@ class AcompanhamentoServiceTest {
 
     @Test
     void excluir_shouldThrowWhenMissing() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.empty());
+
         assertThrows(ResourceNotFoundException.class, () -> acompanhamentoService.excluir(1L));
     }
 
     @Test
     void excluir_shouldDeleteWhenFound() {
-        Acompanhamento entity = new Acompanhamento();
-        entity.setId(1L);
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        Acompanhamento entity = criarAcompanhamentoComUsuario(1L, usuario);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
         when(acompanhamentoRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         acompanhamentoService.excluir(1L);

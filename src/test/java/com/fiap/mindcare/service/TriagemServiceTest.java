@@ -132,7 +132,10 @@ class TriagemServiceTest {
     }
 
     @Test
-    void listar_shouldMapPage() {
+    void listar_shouldMapPageForAdmin() {
+        UsuarioSistema admin = criarUsuario(99L, TipoUsuario.ADMIN);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(admin);
+
         Triagem t1 = new Triagem();
         t1.setId(1L);
         Triagem t2 = new Triagem();
@@ -153,6 +156,27 @@ class TriagemServiceTest {
         assertEquals(2, result.getContent().size());
         verify(triagemMapper).toResponse(t1);
         verify(triagemMapper).toResponse(t2);
+    }
+
+    @Test
+    void listar_shouldFilterByUserForNonAdmin() {
+        UsuarioSistema usuario = criarUsuario(10L, TipoUsuario.USER);
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+
+        Triagem t1 = new Triagem();
+        t1.setId(1L);
+        Page<Triagem> page = new PageImpl<>(List.of(t1), PageRequest.of(0, 20), 1);
+
+        TriagemResponseDTO r1 = new TriagemResponseDTO();
+        r1.setId(1L);
+
+        when(triagemRepository.findByUsuarioIdOrderByDataHoraDesc(any(Long.class), any(Pageable.class))).thenReturn(page);
+        when(triagemMapper.toResponse(t1)).thenReturn(r1);
+
+        Page<TriagemResponseDTO> result = triagemService.listar(PageRequest.of(0, 20));
+
+        assertEquals(1, result.getContent().size());
+        verify(triagemRepository).findByUsuarioIdOrderByDataHoraDesc(10L, PageRequest.of(0, 20));
     }
 
     @Test

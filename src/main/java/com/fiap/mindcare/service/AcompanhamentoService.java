@@ -5,11 +5,15 @@ import com.fiap.mindcare.dto.AcompanhamentoRequestDTO;
 import com.fiap.mindcare.dto.AcompanhamentoResponseDTO;
 import com.fiap.mindcare.mapper.AcompanhamentoMapper;
 import com.fiap.mindcare.mapper.EnumMapper;
+import com.fiap.mindcare.enuns.TipoUsuario;
 import com.fiap.mindcare.model.Acompanhamento;
 import com.fiap.mindcare.model.Encaminhamento;
+import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.AcompanhamentoRepository;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
+import com.fiap.mindcare.service.exception.AccessDeniedException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,22 +31,30 @@ public class AcompanhamentoService {
     private final EncaminhamentoRepository encaminhamentoRepository;
     private final AcompanhamentoMapper acompanhamentoMapper;
     private final EnumMapper enumMapper;
+    private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
-    public AcompanhamentoService(AcompanhamentoRepository acompanhamentoRepository, EncaminhamentoRepository encaminhamentoRepository, AcompanhamentoMapper acompanhamentoMapper, EnumMapper enumMapper) {
+    public AcompanhamentoService(AcompanhamentoRepository acompanhamentoRepository, EncaminhamentoRepository encaminhamentoRepository, AcompanhamentoMapper acompanhamentoMapper, EnumMapper enumMapper, UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
         this.acompanhamentoRepository = acompanhamentoRepository;
         this.encaminhamentoRepository = encaminhamentoRepository;
         this.acompanhamentoMapper = acompanhamentoMapper;
         this.enumMapper = enumMapper;
+        this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
     }
 
     @Transactional
     public AcompanhamentoResponseDTO criar(AcompanhamentoRequestDTO dto) {
-        Acompanhamento entity = acompanhamentoMapper.toEntity(dto);
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
 
         Encaminhamento encaminhamento = encaminhamentoRepository.findById(dto.getEncaminhamentoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
-        entity.setEncaminhamento(encaminhamento);
 
+        if (!autenticado.getId().equals(encaminhamento.getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
+        Acompanhamento entity = acompanhamentoMapper.toEntity(dto);
+        entity.setEncaminhamento(encaminhamento);
         entity.setTipoEvento(enumMapper.toTipoEventoAcompanhamento(dto.getTipoEvento()));
         entity.setDescricao(dto.getDescricao());
         entity.setAnexoUrl(dto.getAnexoUrl());
@@ -55,8 +67,15 @@ public class AcompanhamentoService {
     }
 
     public AcompanhamentoResponseDTO buscarPorId(Long id) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Acompanhamento entity = acompanhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Acompanhamento não encontrado"));
+
+        if (!autenticado.getId().equals(entity.getEncaminhamento().getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
 
         AcompanhamentoResponseDTO dto = acompanhamentoMapper.toResponse(entity);
         addHateoasLinks(dto);
@@ -64,15 +83,33 @@ public class AcompanhamentoService {
     }
 
     public Page<AcompanhamentoResponseDTO> listar(Pageable pageable) {
-        return acompanhamentoRepository.findAll(pageable)
-                .map(entity -> {
-                    AcompanhamentoResponseDTO dto = acompanhamentoMapper.toResponse(entity);
-                    addHateoasLinks(dto);
-                    return dto;
-                });
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        Page<Acompanhamento> page;
+        if (autenticado.getTipo() == TipoUsuario.ADMIN) {
+            page = acompanhamentoRepository.findAll(pageable);
+        } else {
+            page = acompanhamentoRepository.findByEncaminhamentoTriagemUsuarioId(autenticado.getId(), pageable);
+        }
+
+        return page.map(entity -> {
+            AcompanhamentoResponseDTO dto = acompanhamentoMapper.toResponse(entity);
+            addHateoasLinks(dto);
+            return dto;
+        });
     }
 
     public Page<AcompanhamentoResponseDTO> listarPorEncaminhamento(Long encaminhamentoId, Pageable pageable) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
+        Encaminhamento encaminhamento = encaminhamentoRepository.findById(encaminhamentoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
+
+        if (!autenticado.getId().equals(encaminhamento.getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         return acompanhamentoRepository
                 .findByEncaminhamentoIdOrderByDataEventoDesc(encaminhamentoId, pageable)
                 .map(entity -> {
@@ -84,13 +121,25 @@ public class AcompanhamentoService {
 
     @Transactional
     public AcompanhamentoResponseDTO atualizar(Long id, AcompanhamentoRequestDTO dto) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Acompanhamento entity = acompanhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Acompanhamento não encontrado"));
 
+        if (!autenticado.getId().equals(entity.getEncaminhamento().getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
         Encaminhamento encaminhamento = encaminhamentoRepository.findById(dto.getEncaminhamentoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Encaminhamento não encontrado"));
-        entity.setEncaminhamento(encaminhamento);
 
+        if (!autenticado.getId().equals(encaminhamento.getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
+
+        entity.setEncaminhamento(encaminhamento);
         entity.setDataEvento(dto.getDataEvento());
         entity.setTipoEvento(enumMapper.toTipoEventoAcompanhamento(dto.getTipoEvento()));
         entity.setDescricao(dto.getDescricao());
@@ -105,8 +154,15 @@ public class AcompanhamentoService {
 
     @Transactional
     public void excluir(Long id) {
+        UsuarioSistema autenticado = usuarioAutenticadoProvider.getUsuarioAutenticado();
+
         Acompanhamento entity = acompanhamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Acompanhamento não encontrado"));
+
+        if (!autenticado.getId().equals(entity.getEncaminhamento().getTriagem().getUsuario().getId())
+                && autenticado.getTipo() != TipoUsuario.ADMIN) {
+            throw new AccessDeniedException("Acesso negado");
+        }
 
         acompanhamentoRepository.delete(entity);
     }
