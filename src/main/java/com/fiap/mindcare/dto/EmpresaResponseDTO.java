@@ -1,5 +1,6 @@
 package com.fiap.mindcare.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import org.springframework.hateoas.RepresentationModel;
 
@@ -7,8 +8,12 @@ import org.springframework.hateoas.RepresentationModel;
 public class EmpresaResponseDTO extends RepresentationModel<EmpresaResponseDTO> {
 
     private Long id;
+
+    @JsonIgnore
     private String cnpj;
+
     private String nome;
+
     private String planoSaude;
 
     public EmpresaResponseDTO() {

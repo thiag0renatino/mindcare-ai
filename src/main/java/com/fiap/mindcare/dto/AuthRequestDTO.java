@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 
 public class AuthRequestDTO {
 
+    @NotBlank(message = "O nome não pode ser vazio")
+    @Size(max = 100, message = "O nome deve ter no máximo 100 caracteres")
     private String nome;
 
     @NotBlank(message = "Email é obrigatório")

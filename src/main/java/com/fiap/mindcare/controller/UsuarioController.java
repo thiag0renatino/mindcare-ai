@@ -1,9 +1,11 @@
 package com.fiap.mindcare.controller;
 
-import com.azure.core.annotation.Get;
 import com.fiap.mindcare.config.security.SecurityConfig;
+import com.fiap.mindcare.dto.AtualizarNomeRequestDTO;
+import com.fiap.mindcare.dto.AtualizarSenhaRequestDTO;
 import com.fiap.mindcare.dto.UsuarioRequestDTO;
 import com.fiap.mindcare.dto.UsuarioResponseDTO;
+import com.fiap.mindcare.service.AuthService;
 import com.fiap.mindcare.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -26,9 +28,11 @@ import java.security.Principal;
 public class UsuarioController {
 
     private final UsuarioService usuarioService;
+    private final AuthService authService;
 
-    public UsuarioController(UsuarioService usuarioService) {
+    public UsuarioController(UsuarioService usuarioService, AuthService authService) {
         this.usuarioService = usuarioService;
+        this.authService = authService;
     }
 
     @Operation(
@@ -69,6 +73,26 @@ public class UsuarioController {
     @GetMapping("/me")
     public ResponseEntity<UsuarioResponseDTO> me(Principal principal) {
         return ResponseEntity.ok(usuarioService.me(principal));
+    }
+
+    @Operation(
+            summary = "Atualizar senha",
+            description = "Permite que o usuário autenticado atualize sua própria senha."
+    )
+    @PatchMapping("/me/senha")
+    public ResponseEntity<Void> atualizarSenha(@RequestBody @Valid AtualizarSenhaRequestDTO dto) {
+        authService.changePassword(dto);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Atualizar nome",
+            description = "Permite que o usuário autenticado atualize seu próprio nome."
+    )
+    @PatchMapping("/me/nome")
+    public ResponseEntity<Void> atualizarNome(@RequestBody @Valid AtualizarNomeRequestDTO dto) {
+        authService.changeName(dto);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
