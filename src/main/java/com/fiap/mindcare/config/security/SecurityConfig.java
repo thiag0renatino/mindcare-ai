@@ -4,6 +4,7 @@ import com.fiap.mindcare.exception.CustomAuthenticationEntryPoint;
 import com.fiap.mindcare.security.jwt.JwtTokenFilter;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,6 +27,9 @@ public class SecurityConfig {
 
     public static final String SECURITY = "bearerAuth";
 
+    @Value("${app.cors.allowed-origins}")
+    private List<String> allowedOrigins;
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
@@ -34,7 +38,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200", "http://127.0.0.1:4200"));
+        config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));
@@ -67,6 +71,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/procedures/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/empresas").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/empresas").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/empresas/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/empresas/**").hasAuthority("ADMIN")

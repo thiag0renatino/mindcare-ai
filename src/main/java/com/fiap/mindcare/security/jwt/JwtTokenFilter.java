@@ -6,7 +6,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -17,8 +16,7 @@ import java.io.IOException;
 @Component
 public class JwtTokenFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtTokenProvider tokenProvider;
+    private final JwtTokenProvider tokenProvider;
 
     public JwtTokenFilter(JwtTokenProvider tokenProvider) {
         this.tokenProvider = tokenProvider;
@@ -36,7 +34,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
                 }
             }
         } catch (InvalidJwtAuthenticationException ex) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
         filterChain.doFilter(request, response);
