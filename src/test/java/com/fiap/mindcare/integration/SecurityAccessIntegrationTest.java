@@ -74,8 +74,8 @@ class SecurityAccessIntegrationTest {
     @BeforeEach
     void setUp() {
         empresa = empresaRepository.save(new Empresa(null, "12345678901234", "Acme Corp", "Plano A"));
-        createUser("user@acme.com", "SenhaForte9", TipoUsuario.USER);
-        createUser("admin@acme.com", "SenhaForte9", TipoUsuario.ADMIN);
+        createUser("user@acme.com", "SenhaForte9@", TipoUsuario.USER);
+        createUser("admin@acme.com", "SenhaForte9@", TipoUsuario.ADMIN);
     }
 
     @AfterEach
@@ -99,7 +99,7 @@ class SecurityAccessIntegrationTest {
 
     @Test
     void listarUsuarios_shouldReturnForbiddenForUserRole() throws Exception {
-        String token = signInAndGetToken("user@acme.com", "SenhaForte9");
+        String token = signInAndGetToken("user@acme.com", "SenhaForte9@");
 
         mockMvc.perform(get("/api/usuarios")
                         .header("Authorization", "Bearer " + token))
@@ -108,7 +108,7 @@ class SecurityAccessIntegrationTest {
 
     @Test
     void listarUsuarios_shouldReturnOkForAdminRole() throws Exception {
-        String token = signInAndGetToken("admin@acme.com", "SenhaForte9");
+        String token = signInAndGetToken("admin@acme.com", "SenhaForte9@");
 
         mockMvc.perform(get("/api/usuarios")
                         .header("Authorization", "Bearer " + token))

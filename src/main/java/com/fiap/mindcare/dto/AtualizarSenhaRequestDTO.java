@@ -6,7 +6,7 @@ public class AtualizarSenhaRequestDTO {
 
     private String senhaAtual;
 
-    @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+    @Size(min = 8, max = 128)
     private String senhaNova;
 
     public AtualizarSenhaRequestDTO() {

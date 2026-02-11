@@ -2,6 +2,7 @@ package com.fiap.mindcare.controller;
 
 import com.fiap.mindcare.dto.UsuarioRequestDTO;
 import com.fiap.mindcare.dto.UsuarioResponseDTO;
+import com.fiap.mindcare.service.AuthService;
 import com.fiap.mindcare.service.UsuarioService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,9 @@ class UsuarioControllerTest {
 
     @MockitoBean
     private UsuarioService usuarioService;
+
+    @MockitoBean
+    private AuthService authService;
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;

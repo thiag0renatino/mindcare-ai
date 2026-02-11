@@ -53,13 +53,13 @@ class AuthUsuarioIntegrationTest extends AbstractMySqlIntegrationTest {
     void registerSignInAndFetchUserFlow() throws Exception {
         Empresa empresa = empresaRepository.save(new Empresa(null, "12345678901234", "Acme Corp", null));
 
-        AuthRequestDTO register = new AuthRequestDTO("Ana", "Acme", "ana@acme.com", "SenhaForte9");
+        AuthRequestDTO register = new AuthRequestDTO("Ana", "Acme", "ana@acme.com", "SenhaForte9@");
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(register)))
                 .andExpect(status().isCreated());
 
-        AuthSignInDTO signIn = new AuthSignInDTO("ana@acme.com", "SenhaForte9");
+        AuthSignInDTO signIn = new AuthSignInDTO("ana@acme.com", "SenhaForte9@");
         MvcResult signinResult = mockMvc.perform(post("/auth/signin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(signIn)))
@@ -83,7 +83,7 @@ class AuthUsuarioIntegrationTest extends AbstractMySqlIntegrationTest {
         UsuarioRequestDTO update = new UsuarioRequestDTO(
                 "Ana Maria",
                 "ana@acme.com",
-                "NovaSenha9",
+                "NovaSenha9@",
                 "USER",
                 empresa.getId()
         );
