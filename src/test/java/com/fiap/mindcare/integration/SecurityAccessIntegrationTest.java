@@ -94,7 +94,7 @@ class SecurityAccessIntegrationTest {
     void me_shouldReturnForbiddenWhenTokenInvalid() throws Exception {
         mockMvc.perform(get("/api/usuarios/me")
                         .header("Authorization", "Bearer invalid-token"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
