@@ -17,9 +17,11 @@ import java.io.IOException;
 public class JwtTokenFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtTokenFilter(JwtTokenProvider tokenProvider) {
+    public JwtTokenFilter(JwtTokenProvider tokenProvider, TokenBlacklistService tokenBlacklistService) {
         this.tokenProvider = tokenProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class JwtTokenFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String token = tokenProvider.resolveToken(request);
-            if (StringUtils.isNotBlank(token) && tokenProvider.validateToken(token)) {
+            if (StringUtils.isNotBlank(token) && tokenProvider.validateToken(token) && !tokenBlacklistService.isBlacklisted(token)) {
                 Authentication authentication = tokenProvider.getAuthentication(token);
                 if (authentication != null) {
                     SecurityContextHolder.getContext().setAuthentication(authentication);

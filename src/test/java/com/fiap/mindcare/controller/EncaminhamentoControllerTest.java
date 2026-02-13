@@ -15,6 +15,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import com.fiap.mindcare.security.jwt.JwtTokenProvider;
+import com.fiap.mindcare.security.jwt.TokenBlacklistService;
 
 import java.util.List;
 
@@ -48,6 +49,9 @@ class EncaminhamentoControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     void criar_shouldReturnCreatedWhenValid() throws Exception {

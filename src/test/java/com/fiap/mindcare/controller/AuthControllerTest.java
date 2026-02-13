@@ -2,10 +2,12 @@ package com.fiap.mindcare.controller;
 
 import com.fiap.mindcare.dto.AuthRequestDTO;
 import com.fiap.mindcare.dto.AuthSignInDTO;
+import com.fiap.mindcare.dto.LogoutRequestDTO;
 import com.fiap.mindcare.dto.TokenDTO;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.security.jwt.JwtTokenProvider;
+import com.fiap.mindcare.security.jwt.TokenBlacklistService;
 import com.fiap.mindcare.service.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -55,6 +57,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockitoBean
+    private TokenBlacklistService tokenBlacklistService;
 
     @Test
     void signIn_shouldReturnForbiddenWhenInvalid() throws Exception {
@@ -122,5 +127,31 @@ class AuthControllerTest {
                 .andExpect(status().isCreated());
 
         verify(authService).register(any(AuthRequestDTO.class));
+    }
+
+    @Test
+    void logout_shouldReturnNoContent() throws Exception {
+        when(jwtTokenProvider.resolveRawToken("Bearer access-token")).thenReturn("access-token");
+
+        LogoutRequestDTO body = new LogoutRequestDTO("refresh-token");
+
+        mockMvc.perform(post("/auth/logout")
+                        .header("Authorization", "Bearer access-token")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isNoContent());
+
+        verify(authService).logout("access-token", "refresh-token");
+    }
+
+    @Test
+    void logout_shouldWorkWithoutRefreshToken() throws Exception {
+        when(jwtTokenProvider.resolveRawToken("Bearer access-token")).thenReturn("access-token");
+
+        mockMvc.perform(post("/auth/logout")
+                        .header("Authorization", "Bearer access-token"))
+                .andExpect(status().isNoContent());
+
+        verify(authService).logout("access-token", null);
     }
 }

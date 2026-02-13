@@ -2,6 +2,8 @@ package com.fiap.mindcare.controller;
 
 import com.fiap.mindcare.dto.AuthRequestDTO;
 import com.fiap.mindcare.dto.AuthSignInDTO;
+import com.fiap.mindcare.dto.LogoutRequestDTO;
+import com.fiap.mindcare.security.jwt.JwtTokenProvider;
 import com.fiap.mindcare.service.AuthService;
 import io.micrometer.common.util.StringUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -18,9 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService service;
+    private final JwtTokenProvider tokenProvider;
 
-    public AuthController(AuthService service) {
+    public AuthController(AuthService service, JwtTokenProvider tokenProvider) {
         this.service = service;
+        this.tokenProvider = tokenProvider;
     }
 
     @Operation(summary = "Autenticar usuário e obter token JWT")
@@ -49,6 +53,16 @@ public class AuthController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> register(@RequestBody @Valid AuthRequestDTO credential) {
         return service.register(credential);
+    }
+
+    @Operation(summary = "Realizar logout e invalidar tokens JWT")
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorization,
+                                       @RequestBody(required = false) LogoutRequestDTO body) {
+        String accessToken = tokenProvider.resolveRawToken(authorization);
+        String refreshToken = body != null ? body.getRefreshToken() : null;
+        service.logout(accessToken, refreshToken);
+        return ResponseEntity.noContent().build();
     }
 
     private boolean credentialsIsInvalid(AuthSignInDTO credential) {

@@ -7,6 +7,7 @@ import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.security.jwt.JwtTokenProvider;
+import com.fiap.mindcare.security.jwt.TokenBlacklistService;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
 import com.fiap.mindcare.service.security.PasswordValidator;
@@ -28,15 +29,17 @@ public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final TokenBlacklistService tokenBlacklistService;
     private final UsuarioSistemaRepository usuarioRepository;
     private final EmpresaRepository empresaRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordValidator passwordPolicyValidator;
     private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
-    public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider tokenProvider, UsuarioSistemaRepository usuarioRepository, EmpresaRepository empresaRepository, PasswordEncoder passwordEncoder, PasswordValidator passwordPolicyValidator, UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
+    public AuthService(AuthenticationManager authenticationManager, JwtTokenProvider tokenProvider, TokenBlacklistService tokenBlacklistService, UsuarioSistemaRepository usuarioRepository, EmpresaRepository empresaRepository, PasswordEncoder passwordEncoder, PasswordValidator passwordPolicyValidator, UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
+        this.tokenBlacklistService = tokenBlacklistService;
         this.usuarioRepository = usuarioRepository;
         this.empresaRepository = empresaRepository;
         this.passwordEncoder = passwordEncoder;
@@ -131,5 +134,13 @@ public class AuthService {
 
         usuario.setNome(dto.getNomeNovo());
         usuarioRepository.save(usuario);
+    }
+
+    public void logout(String accessToken, String refreshToken) {
+        tokenBlacklistService.blacklist(accessToken);
+        if (StringUtils.isNotBlank(refreshToken)) {
+            String rawRefreshToken = tokenProvider.resolveRawToken(refreshToken);
+            tokenBlacklistService.blacklist(rawRefreshToken);
+        }
     }
 }

@@ -135,7 +135,21 @@ public class JwtTokenProvider {
         return StringUtils.isNotBlank(token) && token.startsWith("Bearer ");
     }
 
-    // 5 Validar token
+    // 5 Extrair data de expiração do token
+    public Date getExpirationDate(String token) {
+        DecodedJWT decoded = decodedToken(token);
+        return decoded.getExpiresAt();
+    }
+
+    // 6 Remove prefixo "Bearer " de um token
+    public String resolveRawToken(String bearerToken) {
+        if (tokenContainsBearer(bearerToken)) {
+            return bearerToken.substring("Bearer ".length());
+        }
+        return bearerToken;
+    }
+
+    // 7 Validar token
     public boolean validateToken(String token) {
         try {
             DecodedJWT decoded = decodedToken(token);

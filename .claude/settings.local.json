@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(mvn test:*)",
-      "Bash(Select-String -Pattern \"Tests run|BUILD\")"
+      "Bash(Select-String -Pattern \"Tests run|BUILD\")",
+      "Bash(./mvnw test:*)"
     ]
   }
 }

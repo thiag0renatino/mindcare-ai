@@ -9,6 +9,7 @@ import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.repository.UsuarioSistemaRepository;
 import com.fiap.mindcare.security.jwt.JwtTokenProvider;
+import com.fiap.mindcare.security.jwt.TokenBlacklistService;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.security.PasswordValidator;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,6 +57,9 @@ class AuthServiceTest {
 
     @Mock
     private PasswordValidator passwordPolicyValidator;
+
+    @Mock
+    private TokenBlacklistService tokenBlacklistService;
 
     @InjectMocks
     private AuthService authService;
@@ -114,5 +119,36 @@ class AuthServiceTest {
         verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
         assertNotNull(response.getBody());
         assertEquals("access", response.getBody().getAccessToken());
+    }
+
+    @Test
+    void logout_shouldBlacklistAccessToken() {
+        String accessToken = "access-token";
+
+        authService.logout(accessToken, null);
+
+        verify(tokenBlacklistService).blacklist(accessToken);
+    }
+
+    @Test
+    void logout_shouldBlacklistBothTokens() {
+        String accessToken = "access-token";
+        String refreshToken = "refresh-token";
+        when(tokenProvider.resolveRawToken(refreshToken)).thenReturn(refreshToken);
+
+        authService.logout(accessToken, refreshToken);
+
+        verify(tokenBlacklistService).blacklist(accessToken);
+        verify(tokenBlacklistService).blacklist(refreshToken);
+    }
+
+    @Test
+    void logout_shouldNotBlacklistRefreshTokenWhenBlank() {
+        String accessToken = "access-token";
+
+        authService.logout(accessToken, "");
+
+        verify(tokenBlacklistService).blacklist(accessToken);
+        verify(tokenProvider, never()).resolveRawToken(any());
     }
 }
