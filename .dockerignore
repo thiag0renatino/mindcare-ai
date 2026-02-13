@@ -1,0 +1,9 @@
+.git
+.idea
+.claude
+target
+*.md
+.env
+.dockerignore
+Dockerfile
+compose*.yml
