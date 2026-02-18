@@ -7,6 +7,8 @@ import com.fiap.mindcare.mapper.ProfissionalMapper;
 import com.fiap.mindcare.model.Profissional;
 import com.fiap.mindcare.repository.ProfissionalRepository;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +31,7 @@ public class ProfissionalService {
     }
 
     @Transactional
+    @CacheEvict(value = "profissionais", allEntries = true)
     public ProfissionalResponseDTO criar(ProfissionalRequestDTO dto) {
         Profissional entity = profissionalMapper.toEntity(dto);
         entity = profissionalRepository.save(entity);
@@ -37,6 +40,7 @@ public class ProfissionalService {
         return response;
     }
 
+    @Cacheable(value = "profissionais", key = "#id")
     public ProfissionalResponseDTO buscarPorId(Long id) {
         Profissional entity = profissionalRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));
@@ -65,6 +69,7 @@ public class ProfissionalService {
     }
 
     @Transactional
+    @CacheEvict(value = "profissionais", allEntries = true)
     public ProfissionalResponseDTO atualizar(Long id, ProfissionalRequestDTO dto) {
         Profissional entity = profissionalRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));
@@ -82,6 +87,7 @@ public class ProfissionalService {
     }
 
     @Transactional
+    @CacheEvict(value = "profissionais", allEntries = true)
     public void excluir(Long id) {
         Profissional entity = profissionalRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));

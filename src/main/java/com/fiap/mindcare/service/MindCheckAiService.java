@@ -24,11 +24,17 @@ import com.fiap.mindcare.service.exception.MindCheckAiException;
 import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class MindCheckAiService {
@@ -42,6 +48,8 @@ public class MindCheckAiService {
     private final EnumMapper enumMapper;
     private final MindCheckAiEventPublisher eventPublisher;
     private final UsuarioAutenticadoProvider usuarioAutenticadoProvider;
+    private final RateLimiterService rateLimiterService;
+    private final StringRedisTemplate redisTemplate;
 
     public MindCheckAiService(ChatClient.Builder chatClientBuilder,
                               ObjectMapper objectMapper,
@@ -51,7 +59,9 @@ public class MindCheckAiService {
                               EncaminhamentoMapper encaminhamentoMapper,
                               EnumMapper enumMapper,
                               ObjectProvider<MindCheckAiEventPublisher> eventPublisherProvider,
-                              UsuarioAutenticadoProvider usuarioAutenticadoProvider) {
+                              UsuarioAutenticadoProvider usuarioAutenticadoProvider,
+                              RateLimiterService rateLimiterService,
+                              StringRedisTemplate redisTemplate) {
         this.chatClient = chatClientBuilder
                 .defaultSystem("""
                         Você é a MindCheck AI, um assistente de triagem corporativa.
@@ -75,11 +85,26 @@ public class MindCheckAiService {
         this.enumMapper = enumMapper;
         this.eventPublisher = eventPublisherProvider.getIfAvailable();
         this.usuarioAutenticadoProvider = usuarioAutenticadoProvider;
+        this.rateLimiterService = rateLimiterService;
+        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
     public MindCheckAiResponseDTO analisar(MindCheckAiRequestDTO request) {
+        // Valida se o limite já foi excedido
         UsuarioSistema usuario = usuarioAutenticadoProvider.getUsuarioAutenticado();
+        rateLimiterService.checkRateLimit(usuario.getId());
+
+        // Verifica se já existe uma resposta cacheada
+        String idempotencyKey = buildIdempotencyKey(usuario.getId(), request);
+        String cached = redisTemplate.opsForValue().get(idempotencyKey);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, MindCheckAiResponseDTO.class);
+            } catch (JsonProcessingException e) {
+                redisTemplate.delete(idempotencyKey);
+            }
+        }
 
         MindCheckAiResponseDTO aiPayload = callAi(request);
         Triagem triagem = salvarTriagem(usuario, request, aiPayload);
@@ -94,7 +119,28 @@ public class MindCheckAiService {
         }
 
         publicarEvento(triagem, encaminhamento);
+        cacheResponse(idempotencyKey, aiPayload);
         return aiPayload;
+    }
+
+    private String buildIdempotencyKey(Long userId, MindCheckAiRequestDTO request) {
+        String raw = userId + valueOrDefault(request.getRelato()) + valueOrDefault(request.getSintomas()) + valueOrDefault(request.getHumor())
+                + valueOrDefault(request.getRotina());
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
+            return "mindcheck:idempotency:" + HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new MindCheckAiException("Erro ao gerar hash de idempotência.", e);
+        }
+    }
+
+    private void cacheResponse(String key, MindCheckAiResponseDTO response) {
+        try {
+            String json = objectMapper.writeValueAsString(response);
+            redisTemplate.opsForValue().set(key, json, 5, TimeUnit.MINUTES);
+        } catch (JsonProcessingException ignored) {
+        }
     }
 
     private MindCheckAiResponseDTO callAi(MindCheckAiRequestDTO request) {

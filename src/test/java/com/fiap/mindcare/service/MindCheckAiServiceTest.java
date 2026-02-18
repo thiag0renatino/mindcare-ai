@@ -20,6 +20,7 @@ import com.fiap.mindcare.model.UsuarioSistema;
 import com.fiap.mindcare.repository.EncaminhamentoRepository;
 import com.fiap.mindcare.repository.TriagemRepository;
 import com.fiap.mindcare.service.exception.AccessDeniedException;
+import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.MindCheckAiException;
 import com.fiap.mindcare.service.security.UsuarioAutenticadoProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.Answers;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.List;
 
@@ -39,7 +42,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -78,6 +83,15 @@ class MindCheckAiServiceTest {
     @Mock
     private UsuarioAutenticadoProvider usuarioAutenticadoProvider;
 
+    @Mock
+    private RateLimiterService rateLimiterService;
+
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private ValueOperations<String, String> valueOperations;
+
     private MindCheckAiService service;
 
     @BeforeEach
@@ -86,6 +100,7 @@ class MindCheckAiServiceTest {
         when(chatClientBuilder.defaultSystem(anyString())).thenReturn(chatClientBuilder);
         when(chatClientBuilder.build()).thenReturn(chatClient);
         when(eventPublisherProvider.getIfAvailable()).thenReturn(eventPublisher);
+        org.mockito.Mockito.lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
         service = new MindCheckAiService(
                 chatClientBuilder,
@@ -96,7 +111,9 @@ class MindCheckAiServiceTest {
                 encaminhamentoMapper,
                 enumMapper,
                 eventPublisherProvider,
-                usuarioAutenticadoProvider
+                usuarioAutenticadoProvider,
+                rateLimiterService,
+                redisTemplate
         );
     }
 
@@ -233,6 +250,37 @@ class MindCheckAiServiceTest {
         assertThrows(MindCheckAiException.class, () -> service.analisar(request));
 
         verify(triagemRepository, never()).save(any(Triagem.class));
+    }
+
+    @Test
+    void analisar_shouldReturnCachedResponseOnDuplicateRequest() {
+        MindCheckAiRequestDTO request = buildRequest();
+        UsuarioSistema usuario = new UsuarioSistema();
+        usuario.setId(1L);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+        String cachedJson = jsonResponse("BAIXO", List.of("Beba agua"), List.of(), "Tudo ok");
+        when(valueOperations.get(anyString())).thenReturn(cachedJson);
+
+        MindCheckAiResponseDTO result = service.analisar(request);
+
+        assertNotNull(result);
+        assertEquals("BAIXO", result.getRisco());
+        verify(triagemRepository, never()).save(any(Triagem.class));
+    }
+
+    @Test
+    void analisar_shouldThrowWhenRateLimitExceeded() {
+        MindCheckAiRequestDTO request = buildRequest();
+        UsuarioSistema usuario = new UsuarioSistema();
+        usuario.setId(1L);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+        doThrow(new BusinessException("Limite de análises atingido. Tente novamente mais tarde."))
+                .when(rateLimiterService).checkRateLimit(1L);
+
+        assertThrows(BusinessException.class, () -> service.analisar(request));
+        verifyNoInteractions(triagemRepository);
     }
 
     private MindCheckAiRequestDTO buildRequest() {

@@ -8,6 +8,8 @@ import com.fiap.mindcare.model.Empresa;
 import com.fiap.mindcare.repository.EmpresaRepository;
 import com.fiap.mindcare.service.exception.BusinessException;
 import com.fiap.mindcare.service.exception.ResourceNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +32,7 @@ public class EmpresaService {
     }
 
     @Transactional
+    @CacheEvict(value = "empresas", allEntries = true)
     public EmpresaResponseDTO criar(EmpresaRequestDTO dto) {
         if (empresaRepository.existsByCnpj(dto.getCnpj())) {
             throw new BusinessException("Já existe uma empresa cadastrada com este CNPJ");
@@ -43,6 +46,7 @@ public class EmpresaService {
         return response;
     }
 
+    @Cacheable(value = "empresas", key = "#id")
     public EmpresaResponseDTO buscarPorId(Long id) {
         Empresa entity = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
@@ -62,6 +66,7 @@ public class EmpresaService {
     }
 
     @Transactional
+    @CacheEvict(value = "empresas", allEntries = true)
     public EmpresaResponseDTO atualizar(Long id, EmpresaRequestDTO dto) {
         Empresa entity = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
@@ -83,6 +88,7 @@ public class EmpresaService {
     }
 
     @Transactional
+    @CacheEvict(value = "empresas", allEntries = true)
     public void excluir(Long id) {
         Empresa entity = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
