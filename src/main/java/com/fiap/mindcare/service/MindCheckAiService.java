@@ -108,17 +108,19 @@ public class MindCheckAiService {
 
         MindCheckAiResponseDTO aiPayload = callAi(request);
         Triagem triagem = salvarTriagem(usuario, request, aiPayload);
-        Encaminhamento encaminhamento = salvarEncaminhamentoSeNecessario(triagem, aiPayload);
+        List<Encaminhamento> encaminhamentos = salvarEncaminhamentosSeNecessario(triagem, aiPayload);
 
         TriagemResponseDTO triagemResponseDTO = triagemMapper.toResponse(triagem);
         aiPayload.setTriagem(triagemResponseDTO);
 
-        if (encaminhamento != null) {
-            EncaminhamentoResponseDTO encResponse = encaminhamentoMapper.toResponse(encaminhamento);
-            aiPayload.setEncaminhamento(encResponse);
+        if (!encaminhamentos.isEmpty()) {
+            List<EncaminhamentoResponseDTO> encResponses = encaminhamentos.stream()
+                    .map(encaminhamentoMapper::toResponse)
+                    .toList();
+            aiPayload.setEncaminhamentosCriados(encResponses);
         }
 
-        publicarEvento(triagem, encaminhamento);
+        publicarEvento(triagem, encaminhamentos);
         cacheResponse(idempotencyKey, aiPayload);
         return aiPayload;
     }
@@ -171,31 +173,35 @@ public class MindCheckAiService {
         return triagemRepository.save(triagem);
     }
 
-    private Encaminhamento salvarEncaminhamentoSeNecessario(Triagem triagem, MindCheckAiResponseDTO aiPayload) {
+    private List<Encaminhamento> salvarEncaminhamentosSeNecessario(Triagem triagem, MindCheckAiResponseDTO aiPayload) {
         if (triagem.getRisco() == RiscoTriagem.BAIXO) {
-            return null;
+            return List.of();
         }
 
-        Encaminhamento encaminhamento = new Encaminhamento();
-        encaminhamento.setTriagem(triagem);
-        encaminhamento.setTipo(TipoEncaminhamento.ESPECIALIDADE);
-        encaminhamento.setPrioridade(definirPrioridade(triagem.getRisco()));
-        encaminhamento.setStatus(StatusEncaminhamento.PENDENTE);
-        encaminhamento.setEspecialidade(primeiroItem(aiPayload.getEncaminhamentos(), "Avaliação clínica geral"));
-        encaminhamento.setObservacao(definirObservacao(aiPayload));
+        List<String> especialidades = aiPayload.getEncaminhamentos();
+        if (especialidades == null || especialidades.isEmpty()) {
+            especialidades = List.of("Avaliação clínica geral");
+        }
 
-        return encaminhamentoRepository.save(encaminhamento);
+        PrioridadeEncaminhamento prioridade = definirPrioridade(triagem.getRisco());
+        String observacao = definirObservacao(aiPayload);
+
+        return especialidades.stream()
+                .map(especialidade -> {
+                    Encaminhamento encaminhamento = new Encaminhamento();
+                    encaminhamento.setTriagem(triagem);
+                    encaminhamento.setTipo(TipoEncaminhamento.ESPECIALIDADE);
+                    encaminhamento.setPrioridade(prioridade);
+                    encaminhamento.setStatus(StatusEncaminhamento.PENDENTE);
+                    encaminhamento.setEspecialidade(especialidade);
+                    encaminhamento.setObservacao(observacao);
+                    return encaminhamentoRepository.save(encaminhamento);
+                })
+                .toList();
     }
 
     private PrioridadeEncaminhamento definirPrioridade(RiscoTriagem risco) {
         return risco == RiscoTriagem.ALTO ? PrioridadeEncaminhamento.ALTA : PrioridadeEncaminhamento.MEDIA;
-    }
-
-    private String primeiroItem(List<String> itens, String fallback) {
-        if (itens == null || itens.isEmpty()) {
-            return fallback;
-        }
-        return itens.get(0);
     }
 
     private String definirObservacao(MindCheckAiResponseDTO aiPayload) {
@@ -241,16 +247,19 @@ public class MindCheckAiService {
         return (value == null || value.isBlank()) ? "Não informado" : value.trim();
     }
 
-    private void publicarEvento(Triagem triagem, Encaminhamento encaminhamento) {
+    private void publicarEvento(Triagem triagem, List<Encaminhamento> encaminhamentos) {
         if (triagem == null || eventPublisher == null) {
             return;
         }
+        List<String> especialidades = encaminhamentos.stream()
+                .map(Encaminhamento::getEspecialidade)
+                .toList();
         TriagemAvaliacaoEvent event = new TriagemAvaliacaoEvent(
                 triagem.getId(),
                 triagem.getUsuario() != null ? triagem.getUsuario().getId() : null,
                 triagem.getRisco() != null ? triagem.getRisco().name() : null,
-                encaminhamento != null,
-                encaminhamento != null ? encaminhamento.getEspecialidade() : null,
+                !encaminhamentos.isEmpty(),
+                especialidades,
                 triagem.getDataHora()
         );
         eventPublisher.publicarTriagem(event);

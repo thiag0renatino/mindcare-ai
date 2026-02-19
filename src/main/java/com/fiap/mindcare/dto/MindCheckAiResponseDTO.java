@@ -12,7 +12,7 @@ public class MindCheckAiResponseDTO {
     private List<String> encaminhamentos;
     private String justificativa;
     private TriagemResponseDTO triagem;
-    private EncaminhamentoResponseDTO encaminhamento;
+    private List<EncaminhamentoResponseDTO> encaminhamentosCriados;
 
     public String getRisco() {
         return risco;
@@ -54,11 +54,11 @@ public class MindCheckAiResponseDTO {
         this.triagem = triagem;
     }
 
-    public EncaminhamentoResponseDTO getEncaminhamento() {
-        return encaminhamento;
+    public List<EncaminhamentoResponseDTO> getEncaminhamentosCriados() {
+        return encaminhamentosCriados;
     }
 
-    public void setEncaminhamento(EncaminhamentoResponseDTO encaminhamento) {
-        this.encaminhamento = encaminhamento;
+    public void setEncaminhamentosCriados(List<EncaminhamentoResponseDTO> encaminhamentosCriados) {
+        this.encaminhamentosCriados = encaminhamentosCriados;
     }
 }

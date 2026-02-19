@@ -1,15 +1,15 @@
 package com.fiap.mindcare.messaging.event;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
-public class TriagemAvaliacaoEvent implements Serializable {
+public class TriagemAvaliacaoEvent {
 
     private Long triagemId;
     private Long usuarioId;
     private String risco;
     private boolean encaminhamentoCriado;
-    private String especialidadeSugerida;
+    private List<String> especialidadesSugeridas;
     private LocalDateTime dataHora;
 
     public TriagemAvaliacaoEvent() {
@@ -19,13 +19,13 @@ public class TriagemAvaliacaoEvent implements Serializable {
                                  Long usuarioId,
                                  String risco,
                                  boolean encaminhamentoCriado,
-                                 String especialidadeSugerida,
+                                 List<String> especialidadesSugeridas,
                                  LocalDateTime dataHora) {
         this.triagemId = triagemId;
         this.usuarioId = usuarioId;
         this.risco = risco;
         this.encaminhamentoCriado = encaminhamentoCriado;
-        this.especialidadeSugerida = especialidadeSugerida;
+        this.especialidadesSugeridas = especialidadesSugeridas;
         this.dataHora = dataHora;
     }
 
@@ -61,12 +61,12 @@ public class TriagemAvaliacaoEvent implements Serializable {
         this.encaminhamentoCriado = encaminhamentoCriado;
     }
 
-    public String getEspecialidadeSugerida() {
-        return especialidadeSugerida;
+    public List<String> getEspecialidadesSugeridas() {
+        return especialidadesSugeridas;
     }
 
-    public void setEspecialidadeSugerida(String especialidadeSugerida) {
-        this.especialidadeSugerida = especialidadeSugerida;
+    public void setEspecialidadesSugeridas(List<String> especialidadesSugeridas) {
+        this.especialidadesSugeridas = especialidadesSugeridas;
     }
 
     public LocalDateTime getDataHora() {

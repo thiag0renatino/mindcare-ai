@@ -38,6 +38,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,6 +47,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -149,7 +151,7 @@ class MindCheckAiServiceTest {
         MindCheckAiResponseDTO result = service.analisar(request);
 
         assertNotNull(result.getTriagem());
-        assertNull(result.getEncaminhamento());
+        assertNull(result.getEncaminhamentosCriados());
         verify(encaminhamentoRepository, never()).save(any(Encaminhamento.class));
 
         ArgumentCaptor<Triagem> captor = ArgumentCaptor.forClass(Triagem.class);
@@ -185,7 +187,8 @@ class MindCheckAiServiceTest {
         MindCheckAiResponseDTO result = service.analisar(request);
 
         assertNotNull(result.getTriagem());
-        assertNotNull(result.getEncaminhamento());
+        assertNotNull(result.getEncaminhamentosCriados());
+        assertFalse(result.getEncaminhamentosCriados().isEmpty());
 
         ArgumentCaptor<Encaminhamento> captor = ArgumentCaptor.forClass(Encaminhamento.class);
         verify(encaminhamentoRepository).save(captor.capture());
@@ -196,6 +199,48 @@ class MindCheckAiServiceTest {
         assertEquals("Psicologia", saved.getEspecialidade());
         assertEquals("Busque apoio", saved.getObservacao());
         verify(eventPublisher).publicarTriagem(any(TriagemAvaliacaoEvent.class));
+    }
+
+    @Test
+    void analisar_shouldCreateOneEncaminhamentoPerEspecialidadeWhenAiSuggestsMultiple() {
+        MindCheckAiRequestDTO request = buildRequest();
+        UsuarioSistema usuario = new UsuarioSistema();
+        usuario.setId(1L);
+
+        when(usuarioAutenticadoProvider.getUsuarioAutenticado()).thenReturn(usuario);
+        when(chatClient.prompt().user(anyString()).call().content())
+                .thenReturn(jsonResponse("ALTO", List.of("Evite sobrecarga"), List.of("Psicologia", "Clínico Geral"), "Risco elevado"));
+        when(enumMapper.toRiscoTriagem("ALTO")).thenReturn(RiscoTriagem.ALTO);
+        when(triagemRepository.save(any(Triagem.class))).thenAnswer(invocation -> {
+            Triagem triagem = invocation.getArgument(0);
+            triagem.setId(10L);
+            return triagem;
+        });
+        when(encaminhamentoRepository.save(any(Encaminhamento.class))).thenAnswer(invocation -> {
+            Encaminhamento encaminhamento = invocation.getArgument(0);
+            encaminhamento.setId(30L);
+            return encaminhamento;
+        });
+        when(triagemMapper.toResponse(any(Triagem.class))).thenReturn(new TriagemResponseDTO());
+        when(encaminhamentoMapper.toResponse(any(Encaminhamento.class))).thenReturn(new EncaminhamentoResponseDTO());
+
+        MindCheckAiResponseDTO result = service.analisar(request);
+
+        assertNotNull(result.getEncaminhamentosCriados());
+        assertEquals(2, result.getEncaminhamentosCriados().size());
+
+        ArgumentCaptor<Encaminhamento> captor = ArgumentCaptor.forClass(Encaminhamento.class);
+        verify(encaminhamentoRepository, times(2)).save(captor.capture());
+
+        List<Encaminhamento> salvos = captor.getAllValues();
+        assertEquals("Psicologia", salvos.get(0).getEspecialidade());
+        assertEquals("Clínico Geral", salvos.get(1).getEspecialidade());
+        salvos.forEach(e -> {
+            assertEquals(TipoEncaminhamento.ESPECIALIDADE, e.getTipo());
+            assertEquals(PrioridadeEncaminhamento.ALTA, e.getPrioridade());
+            assertEquals(StatusEncaminhamento.PENDENTE, e.getStatus());
+            assertEquals("Risco elevado", e.getObservacao());
+        });
     }
 
     @Test

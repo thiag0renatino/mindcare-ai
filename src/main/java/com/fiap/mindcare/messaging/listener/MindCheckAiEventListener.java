@@ -21,7 +21,7 @@ public class MindCheckAiEventListener {
                 event.isEncaminhamentoCriado());
 
         if (event.isEncaminhamentoCriado()) {
-            LOGGER.info("Especialidade sugerida: {}", event.getEspecialidadeSugerida());
+            LOGGER.info("Especialidade sugerida: {}", event.getEspecialidadesSugeridas());
         }
     }
 }
