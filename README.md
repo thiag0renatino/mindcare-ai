@@ -1,6 +1,18 @@
-# MindCare AI — API
+<h1 align="center">
+  <br>
+  MindCare AI — Backend
+  <br>
+</h1>
 
-> API RESTful para triagem inteligente, monitoramento de bem-estar e gestão corporativa de saúde utilizando IA generativa.
+<p align="center">
+  API RESTful para triagem inteligente, monitoramento de bem-estar e gestão corporativa de saúde utilizando IA generativa.
+</p>
+
+<p align="center">
+  <img alt="Java" src="https://img.shields.io/badge/Java-17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" />
+  <img alt="Spring Boot" src="https://img.shields.io/badge/Spring_Boot-3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" />
+  <img alt="Spring AI" src="https://img.shields.io/badge/Spring_AI-Azure_OpenAI-6DB33F?style=for-the-badge&logo=spring&logoColor=white" />
+</p>
 
 ---
 
@@ -45,9 +57,9 @@ O fluxo de triagem inteligente utiliza o Spring AI com Azure OpenAI (configurada
 
 1. **Endpoint protegido** `POST /api/mindcheck-ai/analises` recebe o relato e dados opcionais sobre sintomas, humor e rotina. O usuário é identificado automaticamente via token JWT.
 2. **Rate limiting via Redis**: cada usuário pode realizar no máximo **10 análises por hora**. Excedido o limite, a API retorna erro até a janela ser renovada.
-4. **Prompting estruturado**: o `MindCheckAiService` monta uma instrução fixa para o modelo gerar um JSON contendo risco, sugestoes, encaminhamentos e justificativa. Qualquer JSON inválido dispara uma `MindCheckAiException`.
-5. **Persistência automática**: a resposta é convertida em `MindCheckAiResponseDTO`, uma nova `Triagem` é salva e, quando o risco é `MODERADO` ou `ALTO`, **um `Encaminhamento` é criado automaticamente para cada especialidade sugerida pela IA**, com prioridade proporcional ao risco.
-6. **Retorno completo**: o payload da IA já vem acrescido dos dados da triagem persistida e da lista de encaminhamentos gerados.
+3. **Prompting estruturado**: o `MindCheckAiService` monta uma instrução fixa para o modelo gerar um JSON contendo risco, sugestoes, encaminhamentos e justificativa. Qualquer JSON inválido dispara uma `MindCheckAiException`.
+4. **Persistência automática**: a resposta é convertida em `MindCheckAiResponseDTO`, uma nova `Triagem` é salva e, quando o risco é `MODERADO` ou `ALTO`, **um `Encaminhamento` é criado automaticamente para cada especialidade sugerida pela IA**, com prioridade proporcional ao risco.
+5. **Retorno completo**: o payload da IA já vem acrescido dos dados da triagem persistida e da lista de encaminhamentos gerados.
 
 Esse fluxo garante que toda análise realizada pela IA deixe registros no banco (triagem e encaminhamentos).
 
